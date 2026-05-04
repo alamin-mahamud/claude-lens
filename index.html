@@ -1749,14 +1749,17 @@ function renderSummary() {
   const { costData } = appData;
   const days   = costData.days  ||[];
   const totals = costData.totals||{};
-  const rates  = costData.rates ||{input:5/1e6,output:25/1e6,cacheRead:.5/1e6,cacheCreate:6.25/1e6};
   const today  = new Date().toISOString().slice(0,10);
   const td = days.find(d=>d.date===today);
 
+  // "saved" = what cache reads would have cost at full input price minus what was actually paid
+  // We use sonnet rates as a conservative mid-tier baseline for the counterfactual
+  const SONNET_IN  = 3/1e6;
+  const SONNET_OUT = 15/1e6;
   const metrics = d => {
     const allIn = d.input+d.cacheRead+d.cacheCreate;
     const hr    = allIn>0 ? d.cacheRead/allIn*100 : 0;
-    const noCost= allIn*rates.input + d.output*rates.output;
+    const noCost= allIn*SONNET_IN + d.output*SONNET_OUT;
     return { hr, saved: Math.max(0,noCost-d.cost) };
   };
 
@@ -1838,10 +1841,9 @@ function renderSummary() {
 function renderCache() {
   const { costData } = appData;
   const totals = costData.totals||{};
-  const rates  = costData.rates||{input:5/1e6,output:25/1e6};
   const allIn  = (totals.input||0)+(totals.cacheRead||0)+(totals.cacheCreate||0);
   const hr     = allIn>0 ? totals.cacheRead/allIn*100 : 0;
-  const noCost = allIn*rates.input + (totals.output||0)*rates.output;
+  const noCost = allIn*(3/1e6) + (totals.output||0)*(15/1e6);
   const saved  = Math.max(0, noCost-(totals.cost||0));
   const savPct = noCost>0 ? (1-(totals.cost||0)/noCost)*100 : 0;
   const hCol   = hr>80?'var(--green)':hr>50?'var(--gold)':'var(--red)';
@@ -1860,7 +1862,7 @@ function renderCache() {
     <div class="cache-card">
       <div class="cc-label">Without Cache <span class="tip" data-tip="What you would have paid if all input were billed at the fresh input rate.">?</span></div>
       <div class="cc-val" style="color:var(--red)">$${noCost.toFixed(2)}</div>
-      <div class="cc-sub">At $${(rates.input*1e6).toFixed(0)}/M flat</div>
+      <div class="cc-sub">At $3/M input (Sonnet baseline)</div>
     </div>
     <div class="cache-card">
       <div class="cc-label">Saved <span class="tip" data-tip="Without Cache − Actual Cost. The dollar value of your cache efficiency.">?</span></div>
@@ -1878,7 +1880,7 @@ function renderDaily() {
   const el = document.getElementById('daily-wrap');
   if (!days.length) { el.innerHTML='<div class="empty">No cost data.</div>'; return; }
 
-  const ri = rates.input||5e-6, ro = rates.output||25e-6;
+  const ri = 3/1e6, ro = 15/1e6; // Sonnet baseline for counterfactual
   const maxCost = Math.max(...days.map(d=>d.cost),.001);
 
   // Bar visualisation above table
@@ -1954,9 +1956,9 @@ function renderDaily() {
       </table>
     </div>
     <div class="tbl-note">
-      Rates — Input: $${(ri*1e6).toFixed(2)}/M · Output: $${(ro*1e6).toFixed(2)}/M ·
-      Cache Read: $${((rates.cacheRead||.5e-6)*1e6).toFixed(2)}/M · Cache Write: $${((rates.cacheCreate||6.25e-6)*1e6).toFixed(2)}/M
-      — configure in <code>.env</code>
+      Per-model rates from <code>.env</code> —
+      Haiku $1/$5 · Sonnet $3/$15 · Opus $5/$25 per MTok (in/out).
+      Saved = what Sonnet-rate input would have cost minus actual cost.
     </div>`;
 }
 
@@ -2295,11 +2297,10 @@ function dlCSV(name, rows) {
 }
 function exportDailyCostsCSV() {
   const { costData } = appData;
-  const ri=costData.rates?.input||5e-6, ro=costData.rates?.output||25e-6;
   const rows=['Date,Messages,Tool Calls,Sessions,Cache Read,Cache Write,Hit Rate %,Cost,Saved'];
   for (const d of costData.days||[]) {
     const ai=d.input+d.cacheRead+d.cacheCreate, hr=ai>0?d.cacheRead/ai*100:0;
-    const sv=Math.max(0,ai*ri+d.output*ro-d.cost);
+    const sv=Math.max(0,ai*(3/1e6)+d.output*(15/1e6)-d.cost);
     rows.push(`${d.date},${d.messages},${d.toolCalls},${d.sessions},${d.cacheRead},${d.cacheCreate},${hr.toFixed(1)},${d.cost.toFixed(4)},${sv.toFixed(4)}`);
   }
   dlCSV('claude-lens-daily.csv',rows);
