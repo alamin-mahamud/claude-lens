@@ -331,6 +331,7 @@ app.get("/api/daily-costs", async (req, res) => {
           cacheRead: d.cacheRead,
           cacheCreate: d.cacheCreate,
           cost: Math.round(d.cost * 10000) / 10000,
+          noCacheCost: Math.round(d.noCacheCost * 10000) / 10000,
           models: d.models,
         };
       });
@@ -345,9 +346,10 @@ app.get("/api/daily-costs", async (req, res) => {
         acc.cacheRead += d.cacheRead;
         acc.cacheCreate += d.cacheCreate;
         acc.cost += d.cost;
+        acc.noCacheCost += d.noCacheCost;
         return acc;
       },
-      { messages: 0, toolCalls: 0, sessions: 0, input: 0, output: 0, cacheRead: 0, cacheCreate: 0, cost: 0, models: {} },
+      { messages: 0, toolCalls: 0, sessions: 0, input: 0, output: 0, cacheRead: 0, cacheCreate: 0, cost: 0, noCacheCost: 0, models: {} },
     );
     totals.cost = Math.round(totals.cost * 10000) / 10000;
 
@@ -500,7 +502,8 @@ function parseDailyCosts(filePath, daily) {
         if (!daily[day]) {
           daily[day] = {
             input: 0, output: 0, cacheRead: 0, cacheCreate: 0,
-            messages: 0, toolCalls: 0, sessions: new Set(), models: {}, cost: 0,
+            messages: 0, toolCalls: 0, sessions: new Set(), models: {},
+            cost: 0, noCacheCost: 0,
           };
         }
 
@@ -527,6 +530,8 @@ function parseDailyCosts(filePath, daily) {
           daily[day].cacheCreate+= cWrit;
           daily[day].cost       += inp * rates.input + out * rates.output
                                  + cRead * rates.cacheRead + cWrit * rates.cacheWrite;
+          // what this day would have cost with no caching (all tokens at full input rate)
+          daily[day].noCacheCost += (inp + cRead + cWrit) * rates.input + out * rates.output;
 
           daily[day].models[model] = (daily[day].models[model] || 0) + 1;
 
