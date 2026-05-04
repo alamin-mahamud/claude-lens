@@ -3,785 +3,2332 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Claude Code Usage Dashboard</title>
+  <title>Claude Lens</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
-      background: #0d1117;
-      color: #c9d1d9;
-      padding: 24px;
-      line-height: 1.5;
-    }
-    h1 {
-      font-size: 1.4rem;
-      color: #58a6ff;
-      margin-bottom: 24px;
-      border-bottom: 1px solid #21262d;
-      padding-bottom: 12px;
-    }
-    h2 {
-      font-size: 1rem;
-      color: #8b949e;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 12px;
-    }
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 12px;
-      margin-bottom: 32px;
-    }
-    .card {
-      background: #161b22;
-      border: 1px solid #21262d;
-      border-radius: 8px;
-      padding: 16px;
-      min-width: 0;
-    }
-    .card .label {
-      font-size: 0.75rem;
-      color: #8b949e;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .card .value {
-      font-size: 1.6rem;
-      font-weight: 700;
-      color: #f0f6fc;
-      margin-top: 4px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .card .sub {
-      font-size: 0.7rem;
-      color: #484f58;
-      margin-top: 2px;
-    }
-    .summary-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 32px;
-    }
-    .summary-panel {
-      background: #161b22;
-      border: 1px solid #21262d;
-      border-radius: 10px;
-      padding: 20px;
-    }
-    .summary-panel.today {
-      border-color: #388bfd;
-      border-width: 2px;
-    }
-    .summary-panel .panel-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-    .summary-panel .panel-badge {
-      font-size: 0.65rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      padding: 3px 8px;
-      border-radius: 4px;
-    }
-    .summary-panel.today .panel-badge {
-      background: #388bfd;
-      color: #fff;
-    }
-    .summary-panel.alltime .panel-badge {
-      background: #30363d;
-      color: #8b949e;
-    }
-    .summary-panel .panel-date {
-      font-size: 0.75rem;
-      color: #484f58;
-    }
-    .metric-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-    }
-    .metric {
-      padding: 10px;
-      border-radius: 6px;
-      background: #0d1117;
-    }
-    .metric .metric-label {
-      font-size: 0.65rem;
-      color: #8b949e;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      margin-bottom: 4px;
-    }
-    .metric .metric-value {
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: #f0f6fc;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .metric .metric-value.green { color: #7ee787; }
-    .metric .metric-value.blue { color: #79c0ff; }
-    .metric .metric-value.amber { color: #d29922; }
-    .metric .metric-value.pink { color: #f778ba; }
-    .metric .metric-sub {
-      font-size: 0.6rem;
-      color: #484f58;
-      margin-top: 2px;
-    }
-    .summary-divider {
-      border: none;
-      border-top: 1px solid #21262d;
-      margin: 14px 0;
-    }
-    .section {
-      margin-bottom: 32px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.8rem;
-    }
-    th {
-      text-align: left;
-      color: #8b949e;
-      font-weight: 600;
-      padding: 8px 12px;
-      border-bottom: 1px solid #21262d;
-      text-transform: uppercase;
-      font-size: 0.7rem;
-      letter-spacing: 0.05em;
-    }
-    td {
-      padding: 6px 12px;
-      border-bottom: 1px solid #161b22;
-      vertical-align: top;
-    }
-    tr:hover td {
-      background: #161b22;
-    }
-    .prompt-text {
-      max-width: 500px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      color: #c9d1d9;
-    }
-    .project-badge {
-      display: inline-block;
-      background: #1f2937;
-      color: #79c0ff;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 0.7rem;
-    }
-    .bar-container {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .bar {
-      height: 16px;
-      background: #388bfd;
-      border-radius: 3px;
-      min-width: 2px;
-    }
-    .bar-count {
-      font-size: 0.75rem;
-      color: #8b949e;
-      min-width: 40px;
-    }
-    .tool-name {
-      min-width: 100px;
-      font-weight: 600;
-      color: #d2a8ff;
-    }
-    .loading {
-      color: #484f58;
-      font-style: italic;
-    }
-    .tabs {
-      display: flex;
-      gap: 4px;
-      margin-bottom: 16px;
-    }
-    .tab {
-      padding: 6px 14px;
-      background: #161b22;
-      border: 1px solid #21262d;
-      border-radius: 6px;
-      color: #8b949e;
-      cursor: pointer;
-      font-size: 0.75rem;
-      font-family: inherit;
-    }
-    .tab.active {
-      background: #388bfd;
-      color: #fff;
-      border-color: #388bfd;
-    }
-    #history-table-body tr { cursor: default; }
-    .session-id {
-      font-size: 0.65rem;
-      color: #484f58;
-    }
-    .cost-total td { font-weight: 700; border-top: 2px solid #30363d; color: #f0f6fc; }
-    .cost-value { text-align: right; font-variant-numeric: tabular-nums; }
-    .cost-bar {
-      height: 12px;
-      background: #da3633;
-      border-radius: 2px;
-      display: inline-block;
-      vertical-align: middle;
-    }
-    .cost-note {
-      font-size: 0.7rem;
-      color: #484f58;
-      margin-top: 8px;
-    }
-    .tool-row { cursor: pointer; }
-    .tool-row:hover .tool-name { color: #e2c5ff; }
-    .tool-row:hover .bar { background: #58a6ff; }
-    .tool-detail-panel {
-      background: #161b22;
-      border: 1px solid #21262d;
-      border-radius: 8px;
-      margin-top: 12px;
-      padding: 16px;
-      max-height: 420px;
-      overflow-y: auto;
-    }
-    .tool-detail-panel h3 {
-      font-size: 0.85rem;
-      color: #d2a8ff;
-      margin-bottom: 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .tool-detail-panel .close-btn {
-      background: none;
-      border: 1px solid #30363d;
-      color: #8b949e;
-      border-radius: 4px;
-      padding: 2px 8px;
-      cursor: pointer;
-      font-family: inherit;
-      font-size: 0.7rem;
-    }
-    .tool-detail-panel .close-btn:hover { color: #f0f6fc; border-color: #484f58; }
-    .detail-row {
-      padding: 6px 0;
-      border-bottom: 1px solid #21262d;
-      font-size: 0.75rem;
-    }
-    .detail-row:last-child { border-bottom: none; }
-    .detail-cmd {
-      color: #7ee787;
-      font-size: 0.75rem;
-      word-break: break-all;
-    }
-    .detail-desc {
-      color: #8b949e;
-      font-size: 0.7rem;
-    }
-    .detail-path {
-      color: #79c0ff;
-      font-size: 0.75rem;
-      word-break: break-all;
-    }
-    .detail-meta {
-      color: #484f58;
-      font-size: 0.65rem;
-      margin-top: 2px;
-    }
+/* ─────────────────────────────────────────────────────────────
+   TOKENS
+───────────────────────────────────────────────────────────── */
+:root {
+  --bg:           #faf9f5;
+  --s1:           #ffffff;
+  --s2:           #f5f2eb;
+  --s3:           #ede9df;
+  --s4:           #e2ded4;
+
+  --line:         rgba(20,20,19,.07);
+  --line-mid:     rgba(20,20,19,.11);
+  --line-strong:  rgba(20,20,19,.18);
+
+  --ink:          #141413;
+  --ink-2:        #2e2b27;
+  --ink-3:        #6b6760;
+
+  --gold:         #d97757;
+  --gold-dim:     rgba(217,119,87,.1);
+  --gold-glow:    rgba(217,119,87,.22);
+
+  --green:        #788c5d;
+  --red:          #c0392b;
+  --blue:         #6a9bcc;
+  --violet:       #7c6eb0;
+
+  --fw:           'Plus Jakarta Sans', sans-serif;
+  --fm:           'IBM Plex Mono', monospace;
+  --fd:           'Fraunces', serif;
+
+  --sw:           244px;   /* sidebar width */
+  --ease:         cubic-bezier(.16,1,.3,1);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   RESET
+───────────────────────────────────────────────────────────── */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{height:100%;font-size:15px}
+body{
+  font-family:var(--fw);
+  background:var(--bg);
+  color:var(--ink);
+  height:100%;
+  display:flex;
+  overflow:hidden;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+button{font-family:inherit;cursor:pointer;background:none;border:none}
+input{font-family:inherit}
+::selection{background:var(--gold-dim);color:var(--gold)}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--s4);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:var(--ink-3)}
+
+/* Fraunces for display: headings + big numbers */
+.section-heading,
+.met-val, .cc-val,
+.foot-stat .f-val,
+.nc-met-val,
+.brand-name{
+  font-family:var(--fd);
+  font-variation-settings:'opsz' 48;
+}
+.section-heading{font-variation-settings:'opsz' 72}
+
+/* Body copy stays Plus Jakarta Sans but with Fraunces for pull-quote desc */
+.insight-desc,.exp-desc,.exp-note,.tbl-note{
+  font-family:var(--fd);
+  font-variation-settings:'opsz' 14;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   SIDEBAR
+───────────────────────────────────────────────────────────── */
+.sidebar{
+  width:var(--sw);
+  min-width:var(--sw);
+  height:100vh;
+  border-right:1px solid var(--line-mid);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  position:relative;
+  background:var(--s2);
+}
+.sidebar::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:radial-gradient(ellipse 200px 300px at 50% 0%,rgba(217,119,87,.06) 0%,transparent 100%);
+  pointer-events:none;
+}
+
+/* brand */
+.brand{
+  padding:28px 24px 0;
+  flex-shrink:0;
+}
+.brand-mark{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:28px;
+}
+.brand-icon{
+  width:30px;height:30px;
+  background:var(--gold);
+  border-radius:6px;
+  display:grid;
+  place-items:center;
+  flex-shrink:0;
+}
+.brand-icon svg{width:16px;height:16px;fill:#fff}
+.brand-name{
+  font-size:16px;
+  font-weight:400;
+  letter-spacing:-.01em;
+  color:var(--ink);
+  line-height:1.2;
+}
+.brand-ver{
+  font-family:var(--fm);
+  font-size:11px;
+  color:var(--ink-3);
+  margin-top:3px;
+  letter-spacing:.02em;
+}
+
+/* search */
+.search-box{
+  margin:0 24px 28px;
+  position:relative;
+}
+.search-box input{
+  width:100%;
+  background:var(--s2);
+  border:1px solid var(--line);
+  border-radius:6px;
+  color:var(--ink);
+  font-family:var(--fm);
+  font-size:12px;
+  padding:9px 10px 9px 30px;
+  outline:none;
+  transition:border-color .15s;
+  line-height:1.4;
+}
+.search-box input:focus{border-color:var(--gold)}
+.search-box input::placeholder{color:var(--ink-3)}
+.search-box .ico{
+  position:absolute;
+  left:10px;top:50%;
+  transform:translateY(-50%);
+  color:var(--ink-3);
+  font-size:12px;
+  pointer-events:none;
+}
+
+/* nav */
+.nav-label{
+  font-family:var(--fm);
+  font-size:10px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  padding:0 24px 10px;
+}
+.nav{
+  flex:1;
+  overflow-y:auto;
+  padding:0 12px;
+}
+.nav-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:9px 12px;
+  border-radius:5px;
+  color:var(--ink-2);
+  font-size:13.5px;
+  font-weight:500;
+  letter-spacing:.01em;
+  cursor:pointer;
+  transition:all .15s;
+  user-select:none;
+  text-decoration:none;
+  line-height:1.3;
+}
+.nav-item:hover{color:var(--ink);background:var(--s2)}
+.nav-item.active{color:var(--gold);background:var(--gold-dim)}
+.nav-item .nav-dot{
+  width:5px;height:5px;
+  border-radius:50%;
+  background:var(--line-strong);
+  flex-shrink:0;
+  transition:background .15s;
+}
+.nav-item.active .nav-dot{background:var(--gold)}
+.nav-item:hover .nav-dot{background:var(--ink-2)}
+
+/* sidebar footer */
+.sidebar-foot{
+  padding:20px 24px;
+  border-top:1px solid var(--line);
+  flex-shrink:0;
+}
+.live-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:14px;
+}
+.live-pip{
+  width:7px;height:7px;
+  border-radius:50%;
+  background:var(--ink-3);
+  flex-shrink:0;
+  transition:background .3s;
+}
+.live-pip.on{background:var(--green);box-shadow:0 0 6px rgba(120,140,93,.5)}
+.live-pip.blink{background:var(--gold);animation:pipblink .5s infinite}
+@keyframes pipblink{0%,100%{opacity:1}50%{opacity:.3}}
+.live-txt{font-family:var(--fm);font-size:11px;color:var(--ink-3);letter-spacing:.01em}
+
+.foot-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.foot-stat .f-label{font-family:var(--fm);font-size:10.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;line-height:1}
+.foot-stat .f-val{font-size:22px;font-weight:300;color:var(--ink);letter-spacing:-.02em;line-height:1.1}
+.foot-stat .f-val.gold{color:var(--gold)}
+
+/* ─────────────────────────────────────────────────────────────
+   MAIN CONTENT
+───────────────────────────────────────────────────────────── */
+.main{
+  flex:1;
+  height:100vh;
+  overflow-y:auto;
+  overflow-x:hidden;
+}
+
+/* page top bar */
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:10;
+  background:rgba(250,249,245,.92);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line-mid);
+  padding:0 40px;
+  height:52px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.topbar-title{
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+  color:var(--ink-2);
+  line-height:1;
+}
+.topbar-actions{display:flex;gap:8px;align-items:center}
+.tbtn{
+  font-family:var(--fm);
+  font-size:11.5px;
+  color:var(--ink-3);
+  border:1px solid var(--line);
+  border-radius:5px;
+  padding:6px 14px;
+  transition:all .15s;
+  line-height:1.3;
+  letter-spacing:.01em;
+}
+.tbtn:hover{color:var(--ink);border-color:var(--line-strong)}
+.tbtn.primary{color:var(--gold);border-color:var(--gold-dim)}
+.tbtn.primary:hover{background:var(--gold-dim)}
+
+/* content area */
+.content{padding:0 48px 80px}
+
+/* ─────────────────────────────────────────────────────────────
+   SECTION ANATOMY
+───────────────────────────────────────────────────────────── */
+.section{
+  padding:56px 0 0;
+  animation:fadeup .5s var(--ease) both;
+}
+.section:first-child{padding-top:44px}
+.section-sep{
+  height:1px;
+  background:var(--line);
+  margin:56px 0 0;
+}
+@keyframes fadeup{
+  from{opacity:0;transform:translateY(20px)}
+  to{opacity:1;transform:translateY(0)}
+}
+/* stagger delays */
+.section:nth-child(1){animation-delay:.04s}
+.section:nth-child(2){animation-delay:.1s}
+.section:nth-child(3){animation-delay:.16s}
+.section:nth-child(4){animation-delay:.22s}
+.section:nth-child(5){animation-delay:.28s}
+.section:nth-child(6){animation-delay:.34s}
+.section:nth-child(7){animation-delay:.4s}
+
+.section-eyebrow{
+  font-family:var(--fw);
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--gold);
+  margin-bottom:8px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  line-height:1;
+}
+.section-eyebrow::after{
+  content:'';
+  flex:1;
+  max-width:40px;
+  height:1px;
+  background:var(--gold);
+  opacity:.3;
+}
+.section-heading{
+  font-size:30px;
+  font-weight:400;
+  color:var(--ink);
+  margin-bottom:28px;
+  letter-spacing:-.02em;
+  line-height:1.2;
+}
+
+/* tip */
+.tip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:14px;height:14px;
+  border-radius:50%;
+  border:1px solid var(--line-mid);
+  color:var(--ink-3);
+  font-size:8px;
+  font-weight:700;
+  font-family:var(--fm);
+  cursor:help;
+  vertical-align:middle;
+  position:relative;
+  transition:all .15s;
+}
+.tip:hover{border-color:var(--gold);color:var(--gold)}
+
+/* tooltip */
+#ttp{
+  position:fixed;
+  z-index:9999;
+  background:var(--s2);
+  border:1px solid var(--line-mid);
+  border-radius:7px;
+  color:var(--ink-2);
+  font-family:var(--fm);
+  font-size:12px;
+  line-height:1.65;
+  max-width:300px;
+  padding:12px 16px;
+  pointer-events:none;
+  box-shadow:0 8px 32px rgba(20,20,19,.14),0 2px 8px rgba(20,20,19,.08);
+  display:none;
+  letter-spacing:.01em;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   EXPLAINER
+───────────────────────────────────────────────────────────── */
+.explainer{
+  background:var(--s1);
+  border:1px solid var(--line);
+  border-left:2px solid var(--gold);
+  border-radius:8px;
+  overflow:hidden;
+  margin-bottom:0;
+}
+.exp-toggle{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:16px 20px;
+  color:var(--ink-2);
+  font-size:13px;
+  font-weight:600;
+  letter-spacing:.01em;
+  text-align:left;
+  transition:color .15s;
+  line-height:1.4;
+}
+.exp-toggle:hover{color:var(--ink)}
+.exp-toggle .chev{font-size:10px;transition:transform .2s;color:var(--ink-3)}
+.exp-toggle.open .chev{transform:rotate(180deg)}
+.exp-body{display:none;padding:0 18px 18px}
+.exp-body.open{display:block}
+.exp-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:10px;
+  margin-top:12px;
+}
+.exp-item{
+  background:var(--s2);
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:12px 14px;
+}
+.exp-src{font-family:var(--fm);font-size:11px;color:var(--gold);margin-bottom:6px;letter-spacing:.01em}
+.exp-desc{font-size:12.5px;color:var(--ink-2);line-height:1.65}
+.exp-feeds{margin-top:8px;display:flex;flex-wrap:wrap;gap:3px}
+.exp-feeds span{
+  font-family:var(--fm);
+  font-size:10px;
+  background:var(--s3);
+  border-radius:3px;
+  padding:2px 7px;
+  color:var(--violet);
+  letter-spacing:.01em;
+}
+.exp-note{
+  font-size:12px;
+  color:var(--ink-3);
+  margin-top:16px;
+  padding-top:14px;
+  border-top:1px solid var(--line);
+  line-height:1.7;
+}
+.exp-note code{font-family:var(--fm);color:var(--ink-2)}
+
+/* ─────────────────────────────────────────────────────────────
+   INSIGHT CARDS
+───────────────────────────────────────────────────────────── */
+.insights-list{display:flex;flex-direction:column;gap:1px}
+.insight-item{
+  display:grid;
+  grid-template-columns:32px 1fr auto;
+  align-items:start;
+  gap:16px;
+  padding:20px 0;
+  border-bottom:1px solid var(--line);
+}
+.insight-item:last-child{border-bottom:none}
+.insight-icon{
+  width:28px;height:28px;
+  display:grid;
+  place-items:center;
+  font-size:14px;
+  flex-shrink:0;
+  margin-top:1px;
+}
+.insight-body{}
+.insight-title{
+  font-family:var(--fd);
+  font-variation-settings:'opsz' 16;
+  font-size:16px;
+  font-weight:500;
+  color:var(--ink);
+  margin-bottom:6px;
+  letter-spacing:-.01em;
+  line-height:1.3;
+}
+.insight-desc{font-family:var(--fd);font-variation-settings:'opsz' 14;font-size:14px;font-weight:400;color:var(--ink-2);line-height:1.72}
+.impact-badge{
+  font-family:var(--fm);
+  font-size:10px;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+  padding:4px 9px;
+  border-radius:4px;
+  border:1px solid;
+  white-space:nowrap;
+  margin-top:3px;
+  align-self:start;
+  line-height:1.2;
+}
+.impact-badge.high{color:var(--red);border-color:rgba(192,57,43,.22);background:rgba(192,57,43,.06)}
+.impact-badge.medium{color:var(--gold);border-color:rgba(217,119,87,.25);background:rgba(217,119,87,.07)}
+.impact-badge.positive{color:var(--green);border-color:rgba(120,140,93,.25);background:rgba(120,140,93,.07)}
+.impact-badge.info,.impact-badge.low{color:var(--blue);border-color:rgba(106,155,204,.25);background:rgba(106,155,204,.07)}
+
+/* ─────────────────────────────────────────────────────────────
+   SUMMARY PANELS
+───────────────────────────────────────────────────────────── */
+.sum-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+}
+.sum-panel{
+  background:var(--s1);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:24px;
+  position:relative;
+  overflow:hidden;
+}
+.sum-panel::before{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;
+  height:2px;
+  background:var(--s4);
+}
+.sum-panel.today::before{background:var(--gold)}
+.sum-panel.today{border-color:rgba(217,119,87,.25)}
+
+.panel-tag{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  font-family:var(--fm);
+  font-size:10.5px;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+  margin-bottom:22px;
+  line-height:1;
+}
+.panel-tag .dot{width:5px;height:5px;border-radius:50%;background:var(--gold)}
+.panel-tag.today-tag{color:var(--gold)}
+.panel-tag.all-tag{color:var(--ink-3)}
+.panel-tag.all-tag .dot{background:var(--ink-3)}
+
+.mrow{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:1px;
+  background:var(--line);
+  border-radius:6px;
+  overflow:hidden;
+}
+.met{
+  background:var(--s2);
+  padding:18px 16px;
+}
+.met-lbl{
+  font-family:var(--fw);
+  font-size:11px;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  font-weight:600;
+  margin-bottom:10px;
+  display:flex;
+  align-items:center;
+  gap:5px;
+  line-height:1;
+}
+.met-val{
+  font-size:28px;
+  font-weight:300;
+  color:var(--ink);
+  letter-spacing:-.02em;
+  line-height:1.1;
+}
+.met-val.gold{color:var(--gold)}
+.met-val.green{color:var(--green)}
+.met-val.red{color:var(--red)}
+.met-val.blue{color:var(--blue)}
+.met-sub{font-family:var(--fw);font-size:12px;color:var(--ink-3);margin-top:5px;line-height:1.4}
+.met-div{
+  height:1px;background:var(--line);
+  margin:1px 0;
+}
+
+.top-models{
+  margin-top:14px;
+  padding-top:14px;
+  border-top:1px solid var(--line);
+}
+.model-label-row{
+  font-family:var(--fm);
+  font-size:10px;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  margin-bottom:10px;
+  line-height:1;
+}
+.model-entry{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:5px 0;
+  font-family:var(--fm);
+  font-size:12px;
+  line-height:1.3;
+}
+.model-rank{color:var(--ink-3);width:12px;text-align:right;flex-shrink:0}
+.model-name{color:var(--violet);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.model-cnt{color:var(--ink-3)}
+
+/* ─────────────────────────────────────────────────────────────
+   CACHE CARDS
+───────────────────────────────────────────────────────────── */
+.cache-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:1px;
+  background:var(--line);
+  border-radius:10px;
+  overflow:hidden;
+}
+.cache-card{
+  background:var(--s1);
+  padding:26px 24px;
+}
+.cc-label{
+  font-family:var(--fw);
+  font-size:11px;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  font-weight:600;
+  margin-bottom:14px;
+  display:flex;
+  align-items:center;
+  gap:5px;
+  line-height:1;
+}
+.cc-val{
+  font-size:44px;
+  font-weight:300;
+  color:var(--ink);
+  letter-spacing:-.03em;
+  margin-bottom:6px;
+  line-height:1.05;
+}
+.cc-sub{font-family:var(--fw);font-size:13px;color:var(--ink-3);line-height:1.45}
+
+/* ─────────────────────────────────────────────────────────────
+   BAR CHART ROWS (separated)
+───────────────────────────────────────────────────────────── */
+.bar-list{display:flex;flex-direction:column}
+.bar-row{
+  display:grid;
+  grid-template-columns:160px 1fr 76px;
+  align-items:center;
+  gap:18px;
+  padding:14px 0;
+  border-bottom:1px solid var(--line);
+  cursor:pointer;
+  transition:background .12s;
+}
+.bar-row:last-child{border-bottom:none}
+.bar-row:hover .bar-label{color:var(--ink)}
+.bar-row:hover .bar-track{background:var(--s3)}
+.bar-row:hover .bar-fill{opacity:1}
+.bar-label{
+  font-family:var(--fm);
+  font-size:13px;
+  font-weight:400;
+  color:var(--ink-2);
+  transition:color .12s;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  letter-spacing:.01em;
+}
+.bar-track{
+  height:3px;
+  background:var(--s3);
+  border-radius:2px;
+  overflow:hidden;
+  transition:background .12s;
+}
+.bar-fill{
+  height:100%;
+  background:var(--gold);
+  border-radius:2px;
+  opacity:.9;
+  transform-origin:left;
+  animation:barSlide .8s var(--ease) both;
+}
+@keyframes barSlide{from{transform:scaleX(0)}}
+.bar-row.cost .bar-fill{background:var(--red);opacity:.8}
+.bar-row.tool .bar-fill{background:var(--gold)}
+.bar-num{
+  font-family:var(--fm);
+  font-size:13px;
+  color:var(--ink-2);
+  text-align:right;
+  letter-spacing:-.01em;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   TABLE (shared)
+───────────────────────────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto;margin:0 -2px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead tr{border-bottom:1px solid var(--line-mid)}
+th{
+  font-family:var(--fw);
+  font-size:11px;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  padding:0 16px 12px;
+  text-align:left;
+  white-space:nowrap;
+  font-weight:600;
+  line-height:1;
+}
+th.r{text-align:right}
+td{
+  padding:13px 16px;
+  border-bottom:1px solid var(--line);
+  color:var(--ink-2);
+  font-family:var(--fw);
+  font-size:13.5px;
+  font-weight:400;
+  vertical-align:middle;
+  line-height:1.45;
+}
+td.r{text-align:right}
+td.bright{color:var(--ink)}
+tbody tr:hover td{background:var(--s2)}
+tbody tr:last-child td{border-bottom:none}
+.total-row td{
+  border-top:1px solid var(--line-mid);
+  border-bottom:none;
+  color:var(--ink);
+  font-weight:500;
+}
+
+/* col colors */
+.col-green{color:var(--green)!important}
+.col-red{color:var(--red)!important}
+.col-gold{color:var(--gold)!important}
+.col-blue{color:var(--blue)!important}
+
+/* hit rate cell color */
+.hr-hi{color:var(--green)!important}
+.hr-mid{color:var(--gold)!important}
+.hr-lo{color:var(--red)!important}
+
+.tbl-note{
+  font-family:var(--fm);
+  font-size:11.5px;
+  color:var(--ink-3);
+  margin-top:16px;
+  padding-top:14px;
+  border-top:1px solid var(--line);
+  line-height:1.65;
+  letter-spacing:.01em;
+}
+.tbl-note code{color:var(--ink-2)}
+
+/* ─────────────────────────────────────────────────────────────
+   BADGES / CHIPS
+───────────────────────────────────────────────────────────── */
+.badge{
+  display:inline-block;
+  background:var(--s3);
+  color:var(--blue);
+  border-radius:4px;
+  padding:3px 8px;
+  font-family:var(--fm);
+  font-size:11px;
+  font-weight:400;
+  letter-spacing:.01em;
+  line-height:1.3;
+}
+.sid{font-family:var(--fm);font-size:11px;color:var(--ink-3);letter-spacing:.01em}
+.proj-path{font-family:var(--fm);font-size:11px;color:var(--ink-3);display:block;margin-top:3px;letter-spacing:.01em}
+
+/* ─────────────────────────────────────────────────────────────
+   HISTORY
+───────────────────────────────────────────────────────────── */
+.hist-controls{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:20px;
+  flex-wrap:wrap;
+}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+.tab{
+  font-family:var(--fm);
+  font-size:11.5px;
+  letter-spacing:.04em;
+  color:var(--ink-3);
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:5px 14px;
+  transition:all .15s;
+  line-height:1.3;
+}
+.tab:hover{color:var(--ink);border-color:var(--line-strong)}
+.tab.active{color:var(--gold);border-color:rgba(217,119,87,.3);background:var(--gold-dim)}
+#hist-search{
+  background:var(--s1);
+  border:1px solid var(--line);
+  border-radius:5px;
+  color:var(--ink);
+  font-family:var(--fm);
+  font-size:12.5px;
+  padding:7px 11px;
+  width:190px;
+  outline:none;
+  line-height:1.4;
+}
+#hist-search:focus{border-color:var(--gold)}
+#hist-search::placeholder{color:var(--ink-3)}
+.prompt-cell{
+  max-width:420px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:var(--ink-2);
+  transition:color .12s;
+}
+.history-row{cursor:pointer}
+.history-row:hover .prompt-cell{color:var(--gold)}
+.thread-mark{color:var(--ink-3);font-size:9px;margin-left:5px;transition:color .12s}
+.history-row.expanded .thread-mark{color:var(--gold)}
+
+/* ─────────────────────────────────────────────────────────────
+   SESSION THREAD
+───────────────────────────────────────────────────────────── */
+.thread-row td{
+  background:var(--s2)!important;
+  padding:0!important;
+  border-bottom:1px solid var(--line-mid)!important;
+}
+.thread-wrap{padding:20px 24px 24px}
+.thread-msg{
+  display:flex;
+  gap:14px;
+  padding:14px 0;
+  border-bottom:1px solid var(--line);
+}
+.thread-msg:last-child{border-bottom:none}
+.t-av{
+  width:22px;height:22px;
+  border-radius:4px;
+  display:grid;
+  place-items:center;
+  font-family:var(--fm);
+  font-size:8px;
+  font-weight:700;
+  flex-shrink:0;
+  margin-top:2px;
+}
+.t-av.user{background:var(--s4);color:var(--ink-2)}
+.t-av.assistant{background:var(--gold);color:#fff}
+.t-body{flex:1;min-width:0}
+.t-role{font-family:var(--fm);font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-bottom:6px;line-height:1}
+.t-text{
+  font-family:var(--fm);
+  font-size:12.5px;
+  color:var(--ink-2);
+  white-space:pre-wrap;
+  word-break:break-word;
+  line-height:1.7;
+  max-height:110px;
+  overflow:hidden;
+  position:relative;
+  cursor:pointer;
+}
+.t-text.open{max-height:none}
+.t-text:not(.open)::after{
+  content:'';
+  position:absolute;
+  bottom:0;left:0;right:0;
+  height:30px;
+  background:linear-gradient(transparent,var(--s2));
+}
+.t-tools{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.t-chip{
+  font-family:var(--fm);
+  font-size:10.5px;
+  background:var(--s2);
+  border:1px solid var(--line);
+  border-radius:3px;
+  padding:3px 9px;
+  color:var(--violet);
+  letter-spacing:.02em;
+}
+.t-meta{font-family:var(--fm);font-size:11px;color:var(--ink-3);margin-top:7px;letter-spacing:.01em;line-height:1.5}
+
+/* ─────────────────────────────────────────────────────────────
+   DETAIL PANEL (tool details)
+───────────────────────────────────────────────────────────── */
+.detail-panel{
+  background:var(--s1);
+  border:1px solid var(--line);
+  border-radius:8px;
+  margin-top:16px;
+  padding:16px;
+  max-height:380px;
+  overflow-y:auto;
+}
+.detail-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:14px;
+}
+.detail-title{font-size:13.5px;font-weight:600;color:var(--violet);letter-spacing:-.01em}
+.detail-acts{display:flex;gap:6px}
+.drow{
+  padding:11px 0;
+  border-bottom:1px solid var(--line);
+  font-size:12.5px;
+  line-height:1.55;
+}
+.drow:last-child{border-bottom:none}
+.d-cmd{font-family:var(--fm);color:var(--green);word-break:break-all;font-size:12px}
+.d-desc{font-family:var(--fm);color:var(--ink-2);margin-bottom:3px;font-size:12.5px;line-height:1.55}
+.d-path{font-family:var(--fm);color:var(--blue);word-break:break-all;font-size:12px}
+.d-meta{font-family:var(--fm);font-size:11px;color:var(--ink-3);margin-top:4px;line-height:1.5;letter-spacing:.01em}
+
+/* tool controls */
+.tool-ctrl{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:18px;
+}
+.tool-ctrl label{font-family:var(--fm);font-size:11.5px;color:var(--ink-3);letter-spacing:.02em}
+.tool-ctrl select{
+  background:var(--s2);
+  border:1px solid var(--line);
+  border-radius:5px;
+  color:var(--ink);
+  font-family:var(--fm);
+  font-size:12px;
+  padding:6px 10px;
+  outline:none;
+  line-height:1.4;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   NODE FILTER BAR
+───────────────────────────────────────────────────────────── */
+.node-filter{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-bottom:24px;
+  flex-wrap:wrap;
+}
+.node-filter-label{
+  font-family:var(--fw);
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  margin-right:4px;
+}
+.nf-pill{
+  font-family:var(--fw);
+  font-size:12px;
+  font-weight:500;
+  padding:5px 14px;
+  border-radius:20px;
+  border:1px solid var(--line-mid);
+  color:var(--ink-2);
+  cursor:pointer;
+  transition:all .15s;
+  background:var(--s1);
+}
+.nf-pill:hover{border-color:var(--gold);color:var(--gold)}
+.nf-pill.active{background:var(--gold);color:#fff;border-color:var(--gold)}
+.nf-pill.node-burak.active{background:var(--blue);border-color:var(--blue)}
+.nf-pill.node-burak:not(.active):hover{border-color:var(--blue);color:var(--blue)}
+
+/* ─────────────────────────────────────────────────────────────
+   NODE COMPARISON CARDS
+───────────────────────────────────────────────────────────── */
+.node-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:16px;
+  margin-bottom:8px;
+}
+.node-card{
+  background:var(--s1);
+  border:1px solid var(--line-mid);
+  border-radius:12px;
+  padding:24px;
+  position:relative;
+  overflow:hidden;
+  cursor:pointer;
+  transition:border-color .15s,box-shadow .15s;
+}
+.node-card:hover{box-shadow:0 4px 20px rgba(20,20,19,.08)}
+.node-card.active-node{box-shadow:0 4px 20px rgba(20,20,19,.1)}
+.node-card.active-node.nc-local{border-color:rgba(217,119,87,.4)}
+.node-card.active-node.nc-burak{border-color:rgba(106,155,204,.4)}
+.node-card::before{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;
+  height:3px;
+}
+.nc-local::before{background:var(--gold)}
+.nc-burak::before{background:var(--blue)}
+.nc-all::before{background:linear-gradient(to right,var(--gold),var(--blue))}
+.node-card-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:20px;
+}
+.nc-name{
+  font-family:var(--fw);
+  font-size:15px;
+  font-weight:600;
+  color:var(--ink);
+  letter-spacing:-.01em;
+}
+.nc-status{
+  font-family:var(--fm);
+  font-size:11px;
+  color:var(--ink-3);
+}
+.nc-metrics{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:1px;
+  background:var(--line);
+  border-radius:8px;
+  overflow:hidden;
+  margin-bottom:16px;
+}
+.nc-met{
+  background:var(--s1);
+  padding:14px 12px;
+}
+.nc-met-lbl{
+  font-family:var(--fw);
+  font-size:10.5px;
+  font-weight:600;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  margin-bottom:6px;
+  line-height:1;
+}
+.nc-met-val{
+  font-size:24px;
+  font-weight:300;
+  color:var(--ink);
+  letter-spacing:-.02em;
+  line-height:1.1;
+}
+.nc-met-val.orange{color:var(--gold)}
+.nc-met-val.blue{color:var(--blue)}
+.nc-bar-section{margin-top:4px}
+.nc-bar-lbl{
+  font-family:var(--fw);
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  margin-bottom:10px;
+}
+.nc-proj-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:7px 0;
+  border-bottom:1px solid var(--line);
+  font-size:13px;
+}
+.nc-proj-row:last-child{border-bottom:none}
+.nc-proj-name{flex:1;color:var(--ink-2);font-family:var(--fw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nc-proj-msgs{font-family:var(--fm);font-size:12px;color:var(--ink-3);flex-shrink:0}
+
+/* ─────────────────────────────────────────────────────────────
+   NODE BADGE
+───────────────────────────────────────────────────────────── */
+.node-badge{
+  display:inline-block;
+  font-family:var(--fm);
+  font-size:9.5px;
+  letter-spacing:.04em;
+  padding:2px 6px;
+  border-radius:3px;
+  vertical-align:middle;
+  font-weight:500;
+  white-space:nowrap;
+}
+.node-badge.local{
+  background:rgba(217,119,87,.1);
+  color:var(--gold);
+  border:1px solid rgba(217,119,87,.2);
+}
+.node-badge.burak{
+  background:rgba(106,155,204,.1);
+  color:var(--blue);
+  border:1px solid rgba(106,155,204,.2);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   MISC
+───────────────────────────────────────────────────────────── */
+.loading{font-family:var(--fm);font-size:12.5px;color:var(--ink-3);padding:10px 0;letter-spacing:.02em}
+.empty{font-family:var(--fm);font-size:12.5px;color:var(--ink-3);padding:24px 0;letter-spacing:.02em;line-height:1.6}
+
+/* ─────────────────────────────────────────────────────────────
+   RESPONSIVE
+───────────────────────────────────────────────────────────── */
+@media(max-width:900px){
+  .sidebar{display:none}
+  .main{height:100vh}
+  .sum-grid{grid-template-columns:1fr}
+  .cache-grid{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+  .mrow{grid-template-columns:repeat(2,1fr)}
+  .bar-row{grid-template-columns:120px 1fr 56px;gap:10px}
+}
   </style>
 </head>
 <body>
-  <h1>Claude Code Usage Dashboard</h1>
 
-  <div id="summary-section" class="section">
-    <div class="loading">Loading...</div>
-  </div>
+<!-- ─── SIDEBAR ───────────────────────────────────────────── -->
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-mark">
+      <div class="brand-icon">
+        <svg viewBox="0 0 16 16"><path d="M8 1L2 4v8l6 3 6-3V4L8 1zm0 2.2l3.5 1.75v3.5L8 10.2 4.5 8.45v-3.5L8 3.2z"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">Claude Lens</div>
+        <div class="brand-ver">v2.0</div>
+      </div>
+    </div>
 
-  <div class="section">
-    <h2>Cache Performance</h2>
-    <div id="cache-cards" class="cards">
-      <div class="card"><div class="label">Loading...</div></div>
+    <div class="search-box">
+      <span class="ico">⌕</span>
+      <input type="text" id="global-search" placeholder="Search history…" autocomplete="off">
     </div>
   </div>
 
-  <div class="section">
-    <h2>Daily Cost &amp; Cache</h2>
-    <div id="daily-costs">
-      <div class="loading">Loading...</div>
+  <div class="nav-label">Sections</div>
+
+  <nav class="nav" id="sidebar-nav">
+    <a class="nav-item active" href="#s-insights" onclick="navClick(this)"><span class="nav-dot"></span>Insights</a>
+    <a class="nav-item" href="#s-summary"  onclick="navClick(this)"><span class="nav-dot"></span>Summary</a>
+    <a class="nav-item" href="#s-nodes"   onclick="navClick(this)"><span class="nav-dot"></span>Nodes</a>
+    <a class="nav-item" href="#s-cache"   onclick="navClick(this)"><span class="nav-dot"></span>Cache</a>
+    <a class="nav-item" href="#s-daily"    onclick="navClick(this)"><span class="nav-dot"></span>Daily Cost</a>
+    <a class="nav-item" href="#s-tools"    onclick="navClick(this)"><span class="nav-dot"></span>Tool Calls</a>
+    <a class="nav-item" href="#s-projects" onclick="navClick(this)"><span class="nav-dot"></span>Projects</a>
+    <a class="nav-item" href="#s-history"  onclick="navClick(this)"><span class="nav-dot"></span>History</a>
+  </nav>
+
+  <div class="sidebar-foot">
+    <div class="live-row">
+      <div class="live-pip" id="live-pip"></div>
+      <span class="live-txt" id="live-txt">Connecting…</span>
+    </div>
+    <div class="foot-stats">
+      <div class="foot-stat">
+        <div class="f-label">Today Cost</div>
+        <div class="f-val gold" id="foot-cost">—</div>
+      </div>
+      <div class="foot-stat">
+        <div class="f-label">Sessions</div>
+        <div class="f-val" id="foot-sess">—</div>
+      </div>
+      <div class="foot-stat">
+        <div class="f-label">Cache Hit</div>
+        <div class="f-val" id="foot-hit">—</div>
+      </div>
+      <div class="foot-stat">
+        <div class="f-label">All-Time</div>
+        <div class="f-val gold" id="foot-total">—</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ─── MAIN ───────────────────────────────────────────────── -->
+<main class="main" id="main">
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-section">Overview</div>
+    <div class="topbar-actions">
+      <span class="tbtn" id="sync-status" style="display:none;cursor:default;border-color:transparent;color:var(--ink-3)"></span>
+      <button class="tbtn" id="sync-btn" onclick="syncRemote(this)" title="Rsync ~/.claude from burak-jump-host-local">⇄ Sync burak</button>
+      <button class="tbtn primary" onclick="toggleExplainer()">How it works</button>
+      <button class="tbtn" onclick="load()">↺ Refresh</button>
     </div>
   </div>
 
-  <div class="section">
-    <h2>Tool Calls</h2>
-    <div id="tool-calls">
-      <div class="loading">Loading...</div>
+  <div class="content">
+
+    <!-- ── HOW IT WORKS ─────────────────────────────────────── -->
+    <div class="explainer" id="explainer" style="margin-top:32px;margin-bottom:0">
+      <button class="exp-toggle" id="exp-btn" onclick="toggleExplainer()">
+        <span>Data flow — how ~/.claude/ connects to this dashboard</span>
+        <span class="chev">▾</span>
+      </button>
+      <div class="exp-body" id="exp-body">
+        <div style="font-size:11px;color:var(--ink-2);line-height:1.6">
+          Claude Code writes structured logs to <code style="font-family:var(--fm)">~/.claude/</code> as you work. Claude Lens reads those files locally — nothing leaves your machine.
+        </div>
+        <div class="exp-grid">
+          <div class="exp-item">
+            <div class="exp-src">history.jsonl</div>
+            <div class="exp-desc">Every prompt you send — timestamp, project, session ID.</div>
+            <div class="exp-feeds"><span>Summary</span><span>History</span><span>Insights</span></div>
+          </div>
+          <div class="exp-item">
+            <div class="exp-src">projects/*/[id].jsonl</div>
+            <div class="exp-desc">Full conversation logs with token usage, tool calls, model.</div>
+            <div class="exp-feeds"><span>Daily Costs</span><span>Tool Calls</span><span>Threads</span></div>
+          </div>
+          <div class="exp-item">
+            <div class="exp-src">stats-cache.json</div>
+            <div class="exp-desc">Claude's own aggregated counters, updated per session.</div>
+            <div class="exp-feeds"><span>Summary (supp.)</span></div>
+          </div>
+          <div class="exp-item">
+            <div class="exp-src">sessions/*.json</div>
+            <div class="exp-desc">Session metadata — IDs and project associations.</div>
+            <div class="exp-feeds"><span>Session Threads</span></div>
+          </div>
+        </div>
+        <div class="exp-note">
+          <strong>Connection:</strong> <em>Summary</em> totals = aggregate of all project JSONL files.
+          <em>Cache Hit Rate</em> = <code>cacheRead ÷ (input + cacheRead + cacheCreate)</code>.
+          <em>Insights</em> run client-side over the same data. <em>Session Threads</em> filter that JSONL by session ID.
+        </div>
+      </div>
     </div>
-  </div>
 
-  <div class="section">
-    <h2>Project Activity</h2>
-    <table>
-      <thead>
-        <tr><th>Project</th><th>Messages</th><th>Sessions</th><th>Last Active</th></tr>
-      </thead>
-      <tbody id="projects-body">
-        <tr><td colspan="4" class="loading">Loading...</td></tr>
-      </tbody>
-    </table>
-  </div>
+    <!-- ── INSIGHTS ─────────────────────────────────────────── -->
+    <div class="section" id="s-insights">
+      <div class="section-sep" style="margin-top:32px;margin-bottom:36px"></div>
+      <div class="section-eyebrow">Pattern Insights</div>
+      <div class="section-heading">
+        What your usage data reveals
+        <span class="tip" data-tip="Computed client-side from your actual usage. Analyzes cache trends week-over-week, tool ratios, cost trajectory, and peak activity hours.">?</span>
+      </div>
+      <div id="insights-list" class="insights-list">
+        <div class="loading">Analyzing patterns…</div>
+      </div>
+    </div>
 
-  <div class="section">
-    <h2>Prompt History</h2>
-    <div class="tabs" id="history-tabs"></div>
-    <table>
-      <thead>
-        <tr><th>Time</th><th>Project</th><th>Prompt</th><th>Session</th></tr>
-      </thead>
-      <tbody id="history-table-body">
-        <tr><td colspan="4" class="loading">Loading...</td></tr>
-      </tbody>
-    </table>
-  </div>
+    <!-- ── SUMMARY ──────────────────────────────────────────── -->
+    <div class="section" id="s-summary">
+      <div class="section-sep"></div>
+      <div class="section-eyebrow" style="margin-top:48px">Overview</div>
+      <div class="section-heading">
+        Today vs all time
+        <span class="tip" data-tip="Today = current calendar day (local timezone). Both panels come from the same project JSONL files — Today just filters by today's date.">?</span>
+      </div>
+      <div class="sum-grid" id="sum-grid">
+        <div class="loading">Loading…</div>
+      </div>
+    </div>
 
-  <script>
-    const fmt = (n) => n != null ? n.toLocaleString() : '—';
-    const fmtDate = (ts) => {
-      if (!ts) return '—';
-      const d = new Date(ts);
-      return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
-    };
-    const fmtDateTime = (ts) => {
-      if (!ts) return '—';
-      const d = new Date(ts);
-      return d.toLocaleString('en-AU', {
-        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false,
-      });
-    };
-    const shortProject = (p) => {
-      if (!p) return '—';
-      const parts = p.split('/');
-      // Take last meaningful segment(s)
-      return parts.slice(-1)[0] || parts.slice(-2)[0];
-    };
+    <!-- ── NODES ─────────────────────────────────────────────── -->
+    <div class="section" id="s-nodes">
+      <div class="section-sep"></div>
+      <div style="margin-top:48px">
+        <div class="section-eyebrow" style="margin-bottom:6px">Node Breakdown</div>
+        <div class="section-heading">Usage by machine</div>
+        <div id="node-cards" class="node-grid"><div class="loading">Loading…</div></div>
+      </div>
+    </div>
 
-    async function load() {
-      const [stats, history, toolData, projects, costData] = await Promise.all([
-        fetch('/api/stats').then(r => r.json()),
-        fetch('/api/history').then(r => r.json()),
-        fetch('/api/tool-calls').then(r => r.json()),
-        fetch('/api/projects').then(r => r.json()),
-        fetch('/api/daily-costs').then(r => r.json()),
-      ]);
+    <!-- ── CACHE ────────────────────────────────────────────── -->
+    <div class="section" id="s-cache">
+      <div class="section-sep"></div>
+      <div class="section-eyebrow" style="margin-top:48px">Cache Performance</div>
+      <div class="section-heading">
+        Prompt cache efficiency
+        <span class="tip" data-tip="Anthropic's prompt cache stores context server-side. Cache reads cost ~90% less than fresh input. Cache writes cost 25% more upfront but pay back on every future read.">?</span>
+      </div>
+      <div class="cache-grid" id="cache-grid">
+        <div style="padding:20px" class="loading">Loading…</div>
+      </div>
+    </div>
 
-      renderSummary(costData, stats);
-      renderDailyCosts(costData);
-      renderTools(toolData);
-      renderProjects(projects);
-      renderHistory(history);
-    }
-
-    function renderSummary(costData, stats) {
-      const container = document.getElementById('summary-section');
-      const totals = costData.totals || {};
-      const days = costData.days || [];
-      const today = new Date().toISOString().slice(0, 10);
-      const todayData = days.find(d => d.date === today);
-
-      function calcMetrics(d) {
-        const allInput = d.input + d.cacheRead + d.cacheCreate;
-        const hitRate = allInput > 0 ? (d.cacheRead / allInput * 100) : 0;
-        const noCacheCost = (allInput * 5.0 + d.output * 25.0) / 1e6;
-        const saved = noCacheCost - d.cost;
-        return { hitRate, saved };
-      }
-
-      function topModelsCard(models, cls) {
-        if (!models || Object.keys(models).length === 0) return '';
-        const sorted = Object.entries(models).sort((a, b) => b[1] - a[1]).slice(0, 3);
-        return `
-        <div class="top-models" style="margin-top:12px;padding-top:12px;border-top:1px solid #21262d">
-          <div class="metric-label" style="margin-bottom:8px">Top Models</div>
-          ${sorted.map(([model, count], i) => `
-            <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
-              <span class="model-rank" style="font-size:0.65rem;color:#8b949e;min-width:16px">${i + 1}.</span>
-              <span class="model-name" style="font-size:0.75rem;color:#d2a8ff;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${model}</span>
-              <span class="model-count" style="font-size:0.7rem;color:#8b949e">${fmt(count)} responses</span>
-            </div>
-          `).join('')}
-        </div>`;
-      }
-
-      function panel(data, isToday, models) {
-        const cls = isToday ? 'today' : 'alltime';
-        const badge = isToday ? 'Today' : 'All Time';
-        const date = isToday ? today : (days.length ? `Since ${days[0].date}` : '');
-        const m = calcMetrics(data);
-
-        return `
-        <div class="summary-panel ${cls}">
-          <div class="panel-header">
-            <span class="panel-badge">${badge}</span>
-            <span class="panel-date">${date}</span>
+    <!-- ── DAILY ────────────────────────────────────────────── -->
+    <div class="section" id="s-daily">
+      <div class="section-sep"></div>
+      <div style="margin-top:48px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px">
+        <div>
+          <div class="section-eyebrow" style="margin-bottom:6px">Daily Cost &amp; Cache</div>
+          <div class="section-heading" style="margin-bottom:0">
+            Token usage by day
+            <span class="tip" data-tip="Cost is estimated from your configured rates. 'Saved' = cost without cache − actual cost. The bar shows each day's cost relative to your highest day.">?</span>
           </div>
-          <div class="metric-grid">
-            <div class="metric">
-              <div class="metric-label">Sessions</div>
-              <div class="metric-value">${fmt(data.sessions)}</div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">Messages</div>
-              <div class="metric-value">${fmt(data.messages)}</div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">Tool Calls</div>
-              <div class="metric-value">${fmt(data.toolCalls)}</div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">Cache Hit</div>
-              <div class="metric-value ${m.hitRate > 80 ? 'green' : m.hitRate > 50 ? 'amber' : 'pink'}">${m.hitRate.toFixed(1)}%</div>
-            </div>
+        </div>
+        <button class="tbtn" style="margin-top:4px;flex-shrink:0" onclick="exportDailyCostsCSV()">↓ CSV</button>
+      </div>
+      <div id="daily-wrap"><div class="loading">Loading…</div></div>
+    </div>
+
+    <!-- ── TOOLS ────────────────────────────────────────────── -->
+    <div class="section" id="s-tools">
+      <div class="section-sep"></div>
+      <div style="margin-top:48px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px">
+        <div>
+          <div class="section-eyebrow" style="margin-bottom:6px">Tool Calls</div>
+          <div class="section-heading" style="margin-bottom:0">
+            What Claude uses most
+            <span class="tip" data-tip="Every tool invocation across all projects. Click a row to inspect the 200 most recent individual calls. Use the project filter to scope to one codebase.">?</span>
           </div>
-          <hr class="summary-divider">
-          <div class="metric-grid">
-            <div class="metric">
-              <div class="metric-label">Est. Cost</div>
-              <div class="metric-value amber">$${data.cost.toFixed(2)}</div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">Saved</div>
-              <div class="metric-value green">$${m.saved.toFixed(2)}</div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">Cache Read</div>
-              <div class="metric-value blue">${fmt(data.cacheRead)}</div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">Output Tokens</div>
-              <div class="metric-value">${fmt(data.output)}</div>
-            </div>
+        </div>
+        <button class="tbtn" style="margin-top:4px;flex-shrink:0" onclick="exportToolsCSV()">↓ CSV</button>
+      </div>
+      <div id="tools-wrap"><div class="loading">Loading…</div></div>
+    </div>
+
+    <!-- ── PROJECTS ─────────────────────────────────────────── -->
+    <div class="section" id="s-projects">
+      <div class="section-sep"></div>
+      <div style="margin-top:48px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px">
+        <div>
+          <div class="section-eyebrow" style="margin-bottom:6px">Project Activity</div>
+          <div class="section-heading" style="margin-bottom:0">
+            Usage by project
+            <span class="tip" data-tip="'Project' = the folder Claude Code was run from. Messages from history.jsonl; Sessions = distinct session IDs per project.">?</span>
           </div>
-          ${topModelsCard(models, cls)}
-        </div>`;
-      }
-
-      const todayPanel = todayData
-        ? panel(todayData, true, todayData.models)
-        : `<div class="summary-panel today">
-            <div class="panel-header">
-              <span class="panel-badge">Today</span>
-              <span class="panel-date">${today}</span>
-            </div>
-            <div class="metric" style="padding:10px"><div class="metric-label">No activity yet</div></div>
-          </div>`;
-
-      const allTimePanel = panel(totals, false, totals.models);
-
-      container.innerHTML = `<div class="summary-grid">${todayPanel}${allTimePanel}</div>`;
-    }
-
-    function card(label, value, sub) {
-      return `<div class="card">
-        <div class="label">${label}</div>
-        <div class="value">${value}</div>
-        ${sub ? `<div class="sub">${sub}</div>` : ''}
-      </div>`;
-    }
-
-    function renderDailyCosts(data) {
-      const container = document.getElementById('daily-costs');
-      const { days, totals } = data;
-      if (!days || !days.length) {
-        container.innerHTML = '<div class="loading">No cost data found</div>';
-        return;
-      }
-
-      // Render cache summary cards
-      const totalAllInput = totals.input + totals.cacheRead + totals.cacheCreate;
-      const hitRate = totalAllInput > 0 ? (totals.cacheRead / totalAllInput * 100) : 0;
-      const costWithoutCache = (totalAllInput * 5.0 + totals.output * 25.0) / 1e6;
-      const saved = costWithoutCache - totals.cost;
-      const savingsPct = costWithoutCache > 0 ? ((1 - totals.cost / costWithoutCache) * 100) : 0;
-
-      document.getElementById('cache-cards').innerHTML = [
-        card('Cache Hit Rate', hitRate.toFixed(1) + '%', `${fmt(totals.cacheRead)} of ${fmt(totalAllInput)} input tokens`),
-        card('Cost With Cache', '$' + totals.cost.toFixed(2), 'What you actually paid'),
-        card('Cost Without Cache', '$' + costWithoutCache.toFixed(2), 'If all input at $5/M'),
-        card('Cache Savings', '$' + saved.toFixed(2), savingsPct.toFixed(0) + '% cheaper'),
-      ].join('');
-
-      // Daily table with cache columns
-      const maxCost = Math.max(...days.map(d => d.cost));
-
-      const rows = days.map(d => {
-        const allInput = d.input + d.cacheRead + d.cacheCreate;
-        const hr = allInput > 0 ? (d.cacheRead / allInput * 100) : 0;
-        const noCacheCost = (allInput * 5.0 + d.output * 25.0) / 1e6;
-        const sv = noCacheCost - d.cost;
-        return `
-        <tr>
-          <td>${d.date}</td>
-          <td class="cost-value">${fmt(d.messages)}</td>
-          <td class="cost-value">${fmt(d.toolCalls)}</td>
-          <td class="cost-value">${fmt(d.sessions)}</td>
-          <td class="cost-value">${fmt(d.cacheRead)}</td>
-          <td class="cost-value">${fmt(d.cacheCreate)}</td>
-          <td class="cost-value" style="color: ${hr > 80 ? '#7ee787' : hr > 50 ? '#d29922' : '#f85149'}">${hr.toFixed(1)}%</td>
-          <td class="cost-value">
-            <div class="bar-container">
-              <span class="cost-bar" style="width: ${Math.max((d.cost / maxCost) * 80, 2)}px"></span>
-              <span>$${d.cost.toFixed(2)}</span>
-            </div>
-          </td>
-          <td class="cost-value" style="color: #7ee787">$${sv.toFixed(2)}</td>
-        </tr>
-      `}).join('');
-
-      const totalNoCacheCost = costWithoutCache;
-      container.innerHTML = `
+        </div>
+        <button class="tbtn" style="margin-top:4px;flex-shrink:0" onclick="exportProjectsCSV()">↓ CSV</button>
+      </div>
+      <div class="node-filter" id="proj-node-filter">
+        <span class="node-filter-label">Node</span>
+        <button class="nf-pill active" data-node="all" onclick="setNodeFilter('proj',this)">All</button>
+        <button class="nf-pill node-local" data-node="local" onclick="setNodeFilter('proj',this)">local</button>
+        <button class="nf-pill node-burak" data-node="burak" onclick="setNodeFilter('proj',this)">burak</button>
+      </div>
+      <div class="tbl-wrap">
         <table>
-          <thead>
-            <tr>
-              <th>Date</th><th style="text-align:right">Msgs</th><th style="text-align:right">Tools</th><th style="text-align:right">Sess</th>
-              <th style="text-align:right">Cache Read</th><th style="text-align:right">Cache Write</th><th style="text-align:right">Hit Rate</th><th style="text-align:right">Est. Cost</th><th style="text-align:right">Saved</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows}
-            <tr class="cost-total">
-              <td>Total</td>
-              <td class="cost-value">${fmt(totals.messages)}</td>
-              <td class="cost-value">${fmt(totals.toolCalls)}</td>
-              <td class="cost-value">${fmt(totals.sessions)}</td>
-              <td class="cost-value">${fmt(totals.cacheRead)}</td>
-              <td class="cost-value">${fmt(totals.cacheCreate)}</td>
-              <td class="cost-value" style="color: #7ee787">${hitRate.toFixed(1)}%</td>
-              <td class="cost-value"><strong>$${totals.cost.toFixed(2)}</strong></td>
-              <td class="cost-value" style="color: #7ee787"><strong>$${saved.toFixed(2)}</strong></td>
-            </tr>
-          </tbody>
+          <thead><tr>
+            <th>Project</th><th>Node</th>
+            <th class="r">Messages <span class="tip" data-tip="User prompts sent in this project.">?</span></th>
+            <th class="r">Sessions <span class="tip" data-tip="Distinct Claude Code sessions started in this project.">?</span></th>
+            <th class="r">Last Active <span class="tip" data-tip="Timestamp of most recent prompt.">?</span></th>
+          </tr></thead>
+          <tbody id="proj-body"><tr><td colspan="5" class="loading">Loading…</td></tr></tbody>
         </table>
-        <div class="cost-note">Rates: Bedrock (ap-southeast-2) — Input $5/M, Output $25/M, Cache Read $0.50/M, Cache Write $6.25/M. Derived from actual session costs. Edit RATES in server.js to adjust.</div>
-      `;
+      </div>
+    </div>
+
+    <!-- ── HISTORY ──────────────────────────────────────────── -->
+    <div class="section" id="s-history">
+      <div class="section-sep"></div>
+      <div style="margin-top:48px">
+        <div class="section-eyebrow" style="margin-bottom:6px">Prompt History</div>
+        <div class="section-heading">
+          Recent Claude Code prompts
+          <span class="tip" data-tip="From history.jsonl. Click any row to expand the full session conversation thread.">?</span>
+        </div>
+      </div>
+      <div class="node-filter" id="hist-node-filter" style="margin-bottom:12px">
+        <span class="node-filter-label">Node</span>
+        <button class="nf-pill active" data-node="all" onclick="setNodeFilter('hist',this)">All</button>
+        <button class="nf-pill node-local" data-node="local" onclick="setNodeFilter('hist',this)">local</button>
+        <button class="nf-pill node-burak" data-node="burak" onclick="setNodeFilter('hist',this)">burak</button>
+      </div>
+      <div class="hist-controls">
+        <div class="tabs" id="hist-tabs"></div>
+        <input type="text" id="hist-search" placeholder="Filter…" autocomplete="off">
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>Time</th><th>Node</th><th>Project</th>
+            <th>Prompt <span class="tip" data-tip="Click to expand the full session thread for this conversation.">?</span></th>
+            <th>Session</th>
+          </tr></thead>
+          <tbody id="hist-body"><tr><td colspan="5" class="loading">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="height:1px"></div>
+  </div><!-- /content -->
+</main><!-- /main -->
+
+<!-- Tooltip -->
+<div id="ttp"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════════════════════ */
+const fmt = n => {
+  if (n == null) return '—';
+  const abs = Math.abs(n);
+  if (abs >= 1e9) return (n / 1e9).toFixed(abs >= 10e9 ? 1 : 2).replace(/\.?0+$/, '') + 'B';
+  if (abs >= 1e6) return (n / 1e6).toFixed(abs >= 10e6 ? 1 : 2).replace(/\.?0+$/, '') + 'M';
+  if (abs >= 1e3) return (n / 1e3).toFixed(abs >= 10e3 ? 1 : 2).replace(/\.?0+$/, '') + 'K';
+  return String(n);
+};
+const fmtDT = ts => {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleString('en-AU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hour12:false});
+};
+const fmtD = ts => {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'});
+};
+const shortProj = p => {
+  if (!p) return '—';
+  return p.split('/').filter(Boolean).slice(-1)[0] || p;
+};
+const esc = str => {
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+};
+const hrClass = r => r > 80 ? 'hr-hi' : r > 50 ? 'hr-mid' : 'hr-lo';
+
+/* ═══════════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════════ */
+let appData = { history:[], toolData:{}, projects:[], costData:{} };
+let activeTab = 'all', histFilter = '', expandedSid = null;
+let activeHistNode = 'all', activeProjNode = 'all';
+
+/* ═══════════════════════════════════════════════════════════
+   TOOLTIP
+═══════════════════════════════════════════════════════════ */
+const ttp = document.getElementById('ttp');
+document.addEventListener('mouseover', e => {
+  const t = e.target.closest('[data-tip]');
+  if (!t) return;
+  ttp.textContent = t.dataset.tip;
+  ttp.style.display = 'block';
+  const r = t.getBoundingClientRect();
+  const left = Math.min(r.left, innerWidth - ttp.offsetWidth - 12);
+  ttp.style.left = Math.max(8,left) + 'px';
+  ttp.style.top  = (r.bottom + 8 + scrollY) + 'px';
+});
+document.addEventListener('mouseout', e => {
+  if (e.target.closest('[data-tip]')) ttp.style.display = 'none';
+});
+document.addEventListener('scroll', () => ttp.style.display='none', true);
+
+/* ═══════════════════════════════════════════════════════════
+   EXPLAINER
+═══════════════════════════════════════════════════════════ */
+function toggleExplainer() {
+  const body = document.getElementById('exp-body');
+  const btn  = document.getElementById('exp-btn');
+  const open = body.classList.toggle('open');
+  btn.classList.toggle('open', open);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SIDEBAR NAV
+═══════════════════════════════════════════════════════════ */
+function navClick(el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  const id = el.getAttribute('href').slice(1);
+  document.getElementById('topbar-section').textContent = el.textContent.trim();
+}
+
+// Scroll spy via IntersectionObserver
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const id = e.target.id;
+    document.querySelectorAll('.nav-item').forEach(n => {
+      const match = n.getAttribute('href') === '#' + id;
+      n.classList.toggle('active', match);
+      if (match) document.getElementById('topbar-section').textContent = n.textContent.trim();
+    });
+  });
+}, { root: document.getElementById('main'), threshold: 0.25 });
+['s-insights','s-summary','s-cache','s-daily','s-tools','s-projects','s-history']
+  .forEach(id => { const el = document.getElementById(id); if (el) io.observe(el); });
+
+/* ═══════════════════════════════════════════════════════════
+   SSE
+═══════════════════════════════════════════════════════════ */
+function initSSE() {
+  const pip = document.getElementById('live-pip');
+  const txt = document.getElementById('live-txt');
+  const connect = () => {
+    const es = new EventSource('/api/events');
+    es.onopen = () => { pip.className='live-pip on'; txt.textContent='Live'; };
+    es.onmessage = e => {
+      if (e.data !== 'refresh') return;
+      pip.className='live-pip blink'; txt.textContent='Refreshing…';
+      load().then(() => { pip.className='live-pip on'; txt.textContent='Live'; });
+    };
+    es.onerror = () => {
+      pip.className='live-pip'; txt.textContent='Disconnected';
+      es.close(); setTimeout(connect,5000);
+    };
+  };
+  connect();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LOAD
+═══════════════════════════════════════════════════════════ */
+async function load() {
+  const [history, toolData, projects, costData] = await Promise.all([
+    fetch('/api/history').then(r=>r.json()).catch(()=>[]),
+    fetch('/api/tool-calls').then(r=>r.json()).catch(()=>({})),
+    fetch('/api/projects').then(r=>r.json()).catch(()=>[]),
+    fetch('/api/daily-costs').then(r=>r.json()).catch(()=>({})),
+  ]);
+  appData = { history, toolData, projects, costData };
+  renderInsights();
+  renderSummary();
+  renderCache();
+  renderDaily();
+  renderTools();
+  renderProjects();
+  renderHistory();
+  renderFootStats();
+  renderNodes();
+  checkRemoteStatus();
+}
+
+async function checkRemoteStatus() {
+  try {
+    const s = await fetch('/api/remote-status').then(r=>r.json());
+    const el = document.getElementById('sync-status');
+    const btn = document.getElementById('sync-btn');
+    if (s.remoteAvailable && s.lastSync) {
+      const d = new Date(s.lastSync);
+      const hm = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+      el.textContent = `burak synced ${hm}`;
+      el.style.display = '';
+    } else if (!s.remoteAvailable) {
+      el.textContent = '';
+      el.style.display = 'none';
     }
+    btn.disabled = s.running;
+    btn.textContent = s.running ? '⇄ Syncing…' : '⇄ Sync burak';
+  } catch {}
+}
 
-    function renderTools(data) {
-      const tools = data.tools || [];
-      const container = document.getElementById('tool-calls');
-      if (!tools.length) {
-        container.innerHTML = '<div class="loading">No tool calls found</div>';
-        return;
-      }
-      const max = tools[0].count;
-      const rows = tools.map(t => `
-        <tr class="tool-row" data-tool="${t.tool}">
-          <td class="tool-name">${t.tool}</td>
-          <td style="width:100%">
-            <div class="bar-container">
-              <div class="bar" style="width: ${Math.max((t.count / max) * 100, 1)}%"></div>
-              <span class="bar-count">${fmt(t.count)}</span>
-            </div>
-          </td>
-        </tr>
-      `).join('');
+async function syncRemote(btn) {
+  btn.disabled = true;
+  btn.textContent = '⇄ Syncing…';
+  try {
+    await fetch('/api/sync-remote', { method: 'POST' });
+    // Poll until done
+    const poll = setInterval(async () => {
+      try {
+        const s = await fetch('/api/remote-status').then(r=>r.json());
+        if (!s.running) {
+          clearInterval(poll);
+          btn.disabled = false;
+          btn.textContent = '⇄ Sync burak';
+          if (s.error) {
+            alert('Sync failed: ' + s.error);
+          } else {
+            load(); // reload all data with merged remote
+          }
+        }
+      } catch { clearInterval(poll); btn.disabled=false; btn.textContent='⇄ Sync burak'; }
+    }, 1500);
+  } catch {
+    btn.disabled = false;
+    btn.textContent = '⇄ Sync burak';
+  }
+}
 
-      container.innerHTML = `
-        <table><tbody id="tool-table-body">${rows}</tbody></table>
-        <div id="tool-detail-container"></div>
-      `;
+/* ═══════════════════════════════════════════════════════════
+   FOOTER STATS
+═══════════════════════════════════════════════════════════ */
+function renderFootStats() {
+  const { costData } = appData;
+  const days   = costData.days   || [];
+  const totals = costData.totals || {};
+  const today  = new Date().toISOString().slice(0,10);
+  const td = days.find(d => d.date === today);
 
-      document.getElementById('tool-table-body').addEventListener('click', (e) => {
-        const row = e.target.closest('.tool-row');
-        if (!row) return;
-        loadToolDetails(row.dataset.tool);
+  document.getElementById('foot-cost').textContent  = td ? '$'+td.cost.toFixed(2) : '$0.00';
+  document.getElementById('foot-sess').textContent   = td ? fmt(td.sessions) : '0';
+  document.getElementById('foot-total').textContent  = '$'+(totals.cost||0).toFixed(2);
+
+  const allIn = (totals.input||0)+(totals.cacheRead||0)+(totals.cacheCreate||0);
+  const hr = allIn > 0 ? (totals.cacheRead/allIn*100) : 0;
+  const hel = document.getElementById('foot-hit');
+  hel.textContent = hr.toFixed(0)+'%';
+  hel.style.color = hr > 70 ? 'var(--green)' : hr > 40 ? 'var(--gold)' : 'var(--red)';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INSIGHTS
+═══════════════════════════════════════════════════════════ */
+function renderInsights() {
+  const ins = computeInsights(appData.history, appData.toolData, appData.costData, appData.projects);
+  const el  = document.getElementById('insights-list');
+  if (!ins.length) { el.innerHTML='<div class="empty">Not enough data yet.</div>'; return; }
+  el.innerHTML = ins.map(i => `
+    <div class="insight-item">
+      <div class="insight-icon">${i.icon}</div>
+      <div class="insight-body">
+        <div class="insight-title">${esc(i.title)}</div>
+        <div class="insight-desc">${esc(i.desc)}</div>
+      </div>
+      <div class="impact-badge ${i.impact}">${i.impact}</div>
+    </div>`).join('');
+}
+
+function computeInsights(history, toolData, costData, projects) {
+  const ins  = [];
+  const days = (costData.days||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const tot  = costData.totals||{};
+  const rates= costData.rates||{input:5/1e6,output:25/1e6};
+  const tools= toolData.tools||[];
+  const tmap = Object.fromEntries(tools.map(t=>[t.tool,t.count]));
+
+  // peak hour
+  if (history.length > 10) {
+    const hc = new Array(24).fill(0);
+    history.forEach(h=>{ if(h.timestamp) hc[new Date(h.timestamp).getHours()]++; });
+    const peak = hc.indexOf(Math.max(...hc));
+    const pct  = Math.round(hc[peak]/history.length*100);
+    ins.push({ icon:'🕐', title:`Peak activity at ${peak}:00–${peak+1}:00`,
+      desc:`${pct}% of your prompts happen here. Sessions started in this window benefit from warm cache carried over from earlier work.`, impact:'info' });
+  }
+
+  // cache trend
+  if (days.length >= 14) {
+    const hr = sub => {
+      const t = sub.reduce((a,d)=>({r:a.r+d.cacheRead,tot:a.tot+d.input+d.cacheRead+d.cacheCreate}),{r:0,tot:0});
+      return t.tot>0 ? t.r/t.tot*100 : 0;
+    };
+    const recent=hr(days.slice(-7)), prev=hr(days.slice(-14,-7)), diff=recent-prev;
+    if (Math.abs(diff)>5) ins.push({
+      icon: diff>0?'📈':'📉',
+      title: `Cache hit rate ${diff>0?'▲':'▼'} ${Math.abs(diff).toFixed(0)}% this week`,
+      desc: diff>0
+        ? `Improved ${prev.toFixed(0)}% → ${recent.toFixed(0)}%. Consistent system prompts and sustained sessions are working.`
+        : `Dropped ${prev.toFixed(0)}% → ${recent.toFixed(0)}%. Common causes: new sessions, changed prompts, more projects.`,
+      impact: diff<-10?'high':'medium'
+    });
+
+    // cost trend
+    const cost7 = sub => sub.reduce((a,d)=>a+d.cost,0);
+    const rc=cost7(days.slice(-7)), pc=cost7(days.slice(-14,-7));
+    if (pc>0) {
+      const chg=(rc-pc)/pc*100;
+      if (Math.abs(chg)>25) ins.push({
+        icon:chg>0?'💸':'💰',
+        title:`Cost ${chg>0?'▲':'▼'} ${Math.abs(chg).toFixed(0)}% this week`,
+        desc:chg>0
+          ? `$${rc.toFixed(2)} last 7 days vs $${pc.toFixed(2)} prior week. Open the Daily Cost table for the spike.`
+          : `Down to $${rc.toFixed(2)} from $${pc.toFixed(2)} — usage becoming more efficient.`,
+        impact:chg>50?'high':'medium'
       });
     }
+  }
 
-    async function loadToolDetails(toolName) {
-      const container = document.getElementById('tool-detail-container');
-      container.innerHTML = '<div class="tool-detail-panel"><div class="loading">Loading details...</div></div>';
+  // tool patterns
+  const totalT = tools.reduce((a,t)=>a+t.count,0);
+  if (totalT > 100) {
+    const bash=tmap['Bash']||0, read=tmap['Read']||0, edit=tmap['Edit']||0, agent=tmap['Agent']||0;
+    if (bash > totalT*.4) ins.push({
+      icon:'🔧',
+      title:`Bash is ${Math.round(bash/totalT*100)}% of all tool calls`,
+      desc:`${fmt(bash)} Bash calls. For file operations prefer Read/Write/Edit — they're diff-visible and skip shell parsing. Batch commands with && to reduce round-trips.`,
+      impact:'medium'
+    });
+    if (read > edit*6 && read>200) ins.push({
+      icon:'🔍',
+      title:`${Math.round(read/Math.max(edit,1))}× more reads than edits`,
+      desc:`${fmt(read)} reads vs ${fmt(edit)} edits. Ask Claude to note file contents it has already read to avoid re-reading the same files.`,
+      impact:'low'
+    });
+    if (agent>30) ins.push({
+      icon:'🤖',
+      title:`Strong subagent usage: ${fmt(agent)} Agent calls`,
+      desc:`Good parallelization pattern. Ensure each subagent prompt is fully self-contained — subagents have no memory of the parent conversation.`,
+      impact:'positive'
+    });
+  }
 
-      const calls = await fetch(`/api/tool-details/${encodeURIComponent(toolName)}`).then(r => r.json());
+  // overall cache health
+  const allIn=(tot.input||0)+(tot.cacheRead||0)+(tot.cacheCreate||0);
+  const ohr=allIn>0?tot.cacheRead/allIn*100:0;
+  if (allIn>50000) {
+    if (ohr<30) ins.push({
+      icon:'⚠️',title:`Low cache hit rate: ${ohr.toFixed(0)}%`,
+      desc:`Most input re-processed every turn. Fix: add a persistent system prompt, avoid clearing context mid-session, continue existing sessions instead of starting new ones.`,
+      impact:'high'
+    });
+    else if (ohr>70) ins.push({
+      icon:'✨',title:`Excellent cache efficiency: ${ohr.toFixed(0)}%`,
+      desc:`You're maximizing Anthropic's prompt cache. Stable system prompts and long sessions are keeping costs low.`,
+      impact:'positive'
+    });
+  }
 
-      const panel = document.createElement('div');
-      panel.className = 'tool-detail-panel';
+  // project spread
+  if (projects.length>5) {
+    const totalMsg=projects.reduce((a,p)=>a+p.messages,0);
+    const top3=projects.slice(0,3).reduce((a,p)=>a+p.messages,0);
+    const conc=totalMsg>0?top3/totalMsg*100:0;
+    if (conc<60) ins.push({
+      icon:'📂',title:`Activity across ${projects.length} projects`,
+      desc:`Top 3 projects = ${conc.toFixed(0)}% of messages. Each project starts with a cold cache. Fewer active projects → better cache efficiency.`,
+      impact:'low'
+    });
+  }
 
-      const header = `<h3>
-        <span>${toolName} — ${fmt(calls.length)} calls</span>
-        <span>
-          <button class="close-btn" onclick="exportToolCalls('${toolName}', ${JSON.stringify(calls).length > 5000000 ? '[]' : 'null'})">Export</button>
-          <button class="close-btn" onclick="this.closest('.tool-detail-panel').remove()">Close</button>
-        </span>
-      </h3>`;
+  // output ratio
+  if ((tot.output||0)>0 && (tot.input||0)>0 && tot.output/tot.input>0.5) ins.push({
+    icon:'💡',title:`High output ratio (${Math.round(tot.output/tot.input*100)}%)`,
+    desc:`Output tokens are the most expensive component. If Claude is verbose, instruct it to be concise — especially in tool descriptions and explanations.`,
+    impact:'medium'
+  });
 
-      // Stash calls for export
-      window._lastToolCalls = { toolName, calls };
+  if (!ins.length) ins.push({ icon:'📊', title:'Building your profile…',
+    desc:'More usage data needed (14+ days) to surface personalized patterns.', impact:'info' });
 
-      let rows = '';
-      for (const c of calls.slice(0, 200)) {
-        const proj = (c.project || '').split('-').pop();
-        const time = fmtDateTime(c.timestamp);
+  const ord={high:0,medium:1,low:2,info:3,positive:4};
+  ins.sort((a,b)=>(ord[a.impact]??5)-(ord[b.impact]??5));
+  return ins;
+}
 
-        if (toolName === 'Bash') {
-          rows += `<div class="detail-row">
-            ${c.description ? `<div class="detail-desc">${escapeHtml(c.description)}</div>` : ''}
-            <div class="detail-cmd">$ ${escapeHtml(c.command)}</div>
-            <div class="detail-meta">${time} &middot; ${proj}</div>
-          </div>`;
-        } else if (toolName === 'Read' || toolName === 'Edit' || toolName === 'Write') {
-          rows += `<div class="detail-row">
-            <div class="detail-path">${escapeHtml(c.file_path)}</div>
-            <div class="detail-meta">${time} &middot; ${proj}</div>
-          </div>`;
-        } else if (toolName === 'Grep') {
-          rows += `<div class="detail-row">
-            <div class="detail-cmd">/${escapeHtml(c.pattern)}/</div>
-            ${c.path ? `<div class="detail-path">${escapeHtml(c.path)}</div>` : ''}
-            ${c.glob ? `<div class="detail-desc">glob: ${escapeHtml(c.glob)}</div>` : ''}
-            <div class="detail-meta">${time} &middot; ${proj}</div>
-          </div>`;
-        } else if (toolName === 'Glob') {
-          rows += `<div class="detail-row">
-            <div class="detail-cmd">${escapeHtml(c.pattern)}</div>
-            ${c.path ? `<div class="detail-path">${escapeHtml(c.path)}</div>` : ''}
-            <div class="detail-meta">${time} &middot; ${proj}</div>
-          </div>`;
-        } else if (toolName === 'Agent') {
-          rows += `<div class="detail-row">
-            <div class="detail-desc">${escapeHtml(c.description)}</div>
-            ${c.subagent_type ? `<div class="detail-path">type: ${escapeHtml(c.subagent_type)}</div>` : ''}
-            <div class="detail-meta">${time} &middot; ${proj}</div>
-          </div>`;
-        } else {
-          rows += `<div class="detail-row">
-            <div class="detail-cmd">${escapeHtml(c.input || '')}</div>
-            <div class="detail-meta">${time} &middot; ${proj}</div>
-          </div>`;
-        }
-      }
+/* ═══════════════════════════════════════════════════════════
+   SUMMARY
+═══════════════════════════════════════════════════════════ */
+function renderSummary() {
+  const { costData } = appData;
+  const days   = costData.days  ||[];
+  const totals = costData.totals||{};
+  const today  = new Date().toISOString().slice(0,10);
+  const td = days.find(d=>d.date===today);
 
-      if (calls.length > 200) {
-        rows += `<div class="detail-row detail-meta">...and ${calls.length - 200} more</div>`;
-      }
+  const metrics = d => {
+    const allIn = d.input+d.cacheRead+d.cacheCreate;
+    const hr    = allIn>0 ? d.cacheRead/allIn*100 : 0;
+    return { hr, saved: Math.max(0,(d.noCacheCost||0)-d.cost) };
+  };
 
-      panel.innerHTML = header + rows;
-      container.innerHTML = '';
-      container.appendChild(panel);
-    }
+  const modelsHtml = (models,bg) => {
+    if (!models||!Object.keys(models).length) return '';
+    const top3 = Object.entries(models).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    return `<div class="top-models">
+      <div class="model-label-row">Top Models</div>
+      ${top3.map(([m,c],i)=>`<div class="model-entry">
+        <span class="model-rank">${i+1}</span>
+        <span class="model-name" title="${esc(m)}">${esc(m)}</span>
+        <span class="model-cnt">${fmt(c)}</span>
+      </div>`).join('')}
+    </div>`;
+  };
 
-    function renderProjects(projects) {
-      const tbody = document.getElementById('projects-body');
-      tbody.innerHTML = projects.map(p => `
-        <tr>
-          <td><span class="project-badge">${p.shortName}</span><br><span class="session-id">${p.name}</span></td>
-          <td>${fmt(p.messages)}</td>
-          <td>${fmt(p.sessions)}</td>
-          <td>${fmtDateTime(p.lastSeen)}</td>
-        </tr>
-      `).join('');
-    }
+  const panel = (d, isToday, models) => {
+    const m   = metrics(d);
+    const hc  = m.hr>80?'green':m.hr>50?'gold':'red';
+    const tag = isToday
+      ? `<div class="panel-tag today-tag"><span class="dot"></span>Today — ${today}</div>`
+      : `<div class="panel-tag all-tag"><span class="dot" style="background:var(--ink-3)"></span>All Time${days.length?' — since '+days[0].date:''}</div>`;
+    return `<div class="sum-panel ${isToday?'today':'alltime'}">
+      ${tag}
+      <div class="mrow">
+        <div class="met">
+          <div class="met-lbl">Sessions <span class="tip" data-tip="Distinct session IDs active this period.">?</span></div>
+          <div class="met-val">${fmt(d.sessions)}</div>
+        </div>
+        <div class="met">
+          <div class="met-lbl">Messages <span class="tip" data-tip="User prompts sent. Multiple messages share session cache.">?</span></div>
+          <div class="met-val">${fmt(d.messages)}</div>
+        </div>
+        <div class="met">
+          <div class="met-lbl">Tool Calls <span class="tip" data-tip="Total tool invocations by Claude this period.">?</span></div>
+          <div class="met-val">${fmt(d.toolCalls)}</div>
+        </div>
+        <div class="met">
+          <div class="met-lbl">Cache Hit <span class="tip" data-tip="cacheRead ÷ (input+cacheRead+cacheCreate). Higher = more tokens at 90% discount.">?</span></div>
+          <div class="met-val ${hc}">${m.hr.toFixed(1)}%</div>
+        </div>
+      </div>
+      <div class="met-div"></div>
+      <div class="mrow">
+        <div class="met">
+          <div class="met-lbl">Est. Cost <span class="tip" data-tip="Estimated spend based on token usage × your rates. Configure in .env">?</span></div>
+          <div class="met-val gold">$${d.cost.toFixed(2)}</div>
+        </div>
+        <div class="met">
+          <div class="met-lbl">Saved <span class="tip" data-tip="(allInput×inputRate + output×outputRate) − actualCost. Money avoided via caching.">?</span></div>
+          <div class="met-val green">$${m.saved.toFixed(2)}</div>
+        </div>
+        <div class="met">
+          <div class="met-lbl">Cache Read <span class="tip" data-tip="Tokens served from cache. Each costs ~90% less than a fresh input token.">?</span></div>
+          <div class="met-val blue">${fmt(d.cacheRead)}</div>
+        </div>
+        <div class="met">
+          <div class="met-lbl">Output <span class="tip" data-tip="Tokens generated by Claude. Billed at the highest rate.">?</span></div>
+          <div class="met-val">${fmt(d.output)}</div>
+        </div>
+      </div>
+      ${modelsHtml(models)}
+    </div>`;
+  };
 
-    function renderHistory(history) {
-      // Get unique projects for tabs
-      const allProjects = [...new Set(history.map(h => h.project))];
-      const tabsEl = document.getElementById('history-tabs');
+  const zero = {sessions:0,messages:0,toolCalls:0,cost:0,input:0,output:0,cacheRead:0,cacheCreate:0};
+  const todayPanel = td ? panel(td,true,td.models)
+    : `<div class="sum-panel today">
+        <div class="panel-tag today-tag"><span class="dot"></span>Today — ${today}</div>
+        <div class="empty">No activity yet today.</div>
+       </div>`;
 
-      tabsEl.innerHTML = `<button class="tab active" data-project="all">All</button>` +
-        allProjects.map(p =>
-          `<button class="tab" data-project="${p}">${shortProject(p)}</button>`
-        ).join('');
+  document.getElementById('sum-grid').innerHTML = todayPanel + panel(totals,false,totals.models);
+}
 
-      const tbody = document.getElementById('history-table-body');
+/* ═══════════════════════════════════════════════════════════
+   CACHE
+═══════════════════════════════════════════════════════════ */
+function renderCache() {
+  const { costData } = appData;
+  const totals = costData.totals||{};
+  const allIn  = (totals.input||0)+(totals.cacheRead||0)+(totals.cacheCreate||0);
+  const hr     = allIn>0 ? totals.cacheRead/allIn*100 : 0;
+  const noCost = totals.noCacheCost||0;
+  const saved  = Math.max(0, noCost-(totals.cost||0));
+  const savPct = noCost>0 ? (1-(totals.cost||0)/noCost)*100 : 0;
+  const hCol   = hr>80?'var(--green)':hr>50?'var(--gold)':'var(--red)';
 
-      function render(filter) {
-        const filtered = filter === 'all' ? history : history.filter(h => h.project === filter);
-        // Show most recent first
-        const sorted = [...filtered].reverse();
-        tbody.innerHTML = sorted.map(h => `
-          <tr>
-            <td style="white-space:nowrap">${fmtDateTime(h.timestamp)}</td>
-            <td><span class="project-badge">${shortProject(h.project)}</span></td>
-            <td class="prompt-text" title="${(h.display || '').replace(/"/g, '&quot;')}">${escapeHtml(h.display || '')}</td>
-            <td class="session-id">${(h.sessionId || '').slice(0, 8)}</td>
+  document.getElementById('cache-grid').innerHTML = `
+    <div class="cache-card">
+      <div class="cc-label">Hit Rate <span class="tip" data-tip="How often input tokens came from cache vs fresh. Target > 70%.">?</span></div>
+      <div class="cc-val" style="color:${hCol}">${hr.toFixed(1)}%</div>
+      <div class="cc-sub">${fmt(totals.cacheRead)} of ${fmt(allIn)} tokens</div>
+    </div>
+    <div class="cache-card">
+      <div class="cc-label">Actual Cost <span class="tip" data-tip="What you paid using cache read/write rates where applicable.">?</span></div>
+      <div class="cc-val" style="color:var(--gold)">$${(totals.cost||0).toFixed(2)}</div>
+      <div class="cc-sub">With caching</div>
+    </div>
+    <div class="cache-card">
+      <div class="cc-label">Without Cache <span class="tip" data-tip="What you would have paid if all input were billed at the fresh input rate.">?</span></div>
+      <div class="cc-val" style="color:var(--red)">$${noCost.toFixed(2)}</div>
+      <div class="cc-sub">Per-model rate, no caching</div>
+    </div>
+    <div class="cache-card">
+      <div class="cc-label">Saved <span class="tip" data-tip="Without Cache − Actual Cost. The dollar value of your cache efficiency.">?</span></div>
+      <div class="cc-val" style="color:var(--green)">$${saved.toFixed(2)}</div>
+      <div class="cc-sub">${savPct.toFixed(0)}% cheaper</div>
+    </div>`;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DAILY COSTS
+═══════════════════════════════════════════════════════════ */
+function renderDaily() {
+  const { costData } = appData;
+  const { days=[], totals={}, rates={} } = costData;
+  const el = document.getElementById('daily-wrap');
+  if (!days.length) { el.innerHTML='<div class="empty">No cost data.</div>'; return; }
+
+  const maxCost = Math.max(...days.map(d=>d.cost),.001);
+
+  // Bar visualisation above table
+  const bars = days.slice(-14).map(d => {
+    const allIn = d.input+d.cacheRead+d.cacheCreate;
+    const hr    = allIn>0?d.cacheRead/allIn*100:0;
+    const w     = Math.max(d.cost/maxCost*100,1);
+    return `<div class="bar-row cost" style="cursor:default">
+      <span class="bar-label">${d.date.slice(5)}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${w}%"></div></div>
+      <span class="bar-num col-${hr>70?'green':hr>40?'gold':'red'}">${hr.toFixed(0)}%</span>
+    </div>`;
+  }).join('');
+
+  // Full table
+  const rows = days.map(d => {
+    const allIn = d.input+d.cacheRead+d.cacheCreate;
+    const hr    = allIn>0?d.cacheRead/allIn*100:0;
+    const sv    = Math.max(0,(d.noCacheCost||0)-d.cost);
+    return `<tr>
+      <td class="bright">${d.date}</td>
+      <td class="r">${fmt(d.messages)}</td>
+      <td class="r">${fmt(d.toolCalls)}</td>
+      <td class="r">${fmt(d.sessions)}</td>
+      <td class="r">${fmt(d.cacheRead)}</td>
+      <td class="r">${fmt(d.cacheCreate)}</td>
+      <td class="r ${hrClass(hr)}">${hr.toFixed(1)}%</td>
+      <td class="r col-gold">$${d.cost.toFixed(4)}</td>
+      <td class="r col-green">$${sv.toFixed(4)}</td>
+    </tr>`;
+  }).join('');
+
+  const allIn2=(totals.input||0)+(totals.cacheRead||0)+(totals.cacheCreate||0);
+  const thr=allIn2>0?totals.cacheRead/allIn2*100:0;
+  const tsv=Math.max(0,(totals.noCacheCost||0)-(totals.cost||0));
+
+  el.innerHTML = `
+    <div style="margin-bottom:28px">
+      <div style="font-family:var(--fm);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-3);margin-bottom:14px">
+        Last 14 days — cost bars / cache hit rate
+      </div>
+      <div class="bar-list">${bars}</div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Date</th>
+          <th class="r">Msgs <span class="tip" data-tip="User messages this day.">?</span></th>
+          <th class="r">Tools <span class="tip" data-tip="Tool calls made by Claude.">?</span></th>
+          <th class="r">Sess</th>
+          <th class="r">Cache Read <span class="tip" data-tip="Tokens served from cache — ~90% cheaper than fresh input.">?</span></th>
+          <th class="r">Cache Write <span class="tip" data-tip="Tokens written to cache. 25% premium upfront, paid back on future reads.">?</span></th>
+          <th class="r">Hit Rate <span class="tip" data-tip="cacheRead ÷ totalInput for this day.">?</span></th>
+          <th class="r">Cost <span class="tip" data-tip="Estimated spend at your configured rates.">?</span></th>
+          <th class="r">Saved <span class="tip" data-tip="Without-cache cost minus actual cost.">?</span></th>
+        </tr></thead>
+        <tbody>
+          ${rows}
+          <tr class="total-row">
+            <td>Total</td>
+            <td class="r">${fmt(totals.messages)}</td>
+            <td class="r">${fmt(totals.toolCalls)}</td>
+            <td class="r">${fmt(totals.sessions)}</td>
+            <td class="r">${fmt(totals.cacheRead)}</td>
+            <td class="r">${fmt(totals.cacheCreate)}</td>
+            <td class="r ${hrClass(thr)}">${thr.toFixed(1)}%</td>
+            <td class="r col-gold">$${(totals.cost||0).toFixed(4)}</td>
+            <td class="r col-green">$${tsv.toFixed(4)}</td>
           </tr>
-        `).join('');
-      }
+        </tbody>
+      </table>
+    </div>
+    <div class="tbl-note">
+      Per-model rates from <code>.env</code> —
+      Haiku $1/$5 · Sonnet $3/$15 · Opus $5/$25 per MTok (in/out).
+      Saved = no-cache cost (per model) minus actual cost.
+    </div>`;
+}
 
-      tabsEl.addEventListener('click', (e) => {
-        if (!e.target.classList.contains('tab')) return;
-        tabsEl.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        e.target.classList.add('active');
-        render(e.target.dataset.project);
-      });
+/* ═══════════════════════════════════════════════════════════
+   TOOLS
+═══════════════════════════════════════════════════════════ */
+function renderTools() {
+  const { toolData } = appData;
+  const allTools  = toolData.tools    ||[];
+  const byProject = toolData.byProject||{};
+  const el = document.getElementById('tools-wrap');
+  if (!allTools.length) { el.innerHTML='<div class="empty">No tool calls found.</div>'; return; }
 
-      render('all');
+  const projs = Object.keys(byProject);
+  el.innerHTML = `
+    <div class="tool-ctrl">
+      <label>Filter project:</label>
+      <select id="tool-proj">
+        <option value="">All projects</option>
+        ${projs.map(p=>`<option value="${esc(p)}">${esc(shortProj(p))}</option>`).join('')}
+      </select>
+    </div>
+    <div class="bar-list" id="tool-bar-list"></div>
+    <div id="tool-detail"></div>`;
+
+  renderToolBars('');
+
+  document.getElementById('tool-proj').addEventListener('change', e => renderToolBars(e.target.value));
+  document.getElementById('tool-bar-list').addEventListener('click', e => {
+    const row = e.target.closest('[data-tool]');
+    if (row) loadToolDetail(row.dataset.tool);
+  });
+}
+
+function renderToolBars(projFilter) {
+  const { toolData } = appData;
+  const allTools  = toolData.tools   ||[];
+  const byProject = toolData.byProject||{};
+  let tools = allTools;
+  if (projFilter) {
+    const pc = byProject[projFilter]||{};
+    tools = allTools.map(t=>({tool:t.tool,count:pc[t.tool]||0})).filter(t=>t.count>0).sort((a,b)=>b.count-a.count);
+  }
+  const max = tools[0]?.count||1;
+  const el  = document.getElementById('tool-bar-list');
+  if (!tools.length) { el.innerHTML='<div class="empty">No calls for this project.</div>'; return; }
+  el.innerHTML = tools.map(t=>`
+    <div class="bar-row tool" data-tool="${esc(t.tool)}">
+      <span class="bar-label">${esc(t.tool)}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.max(t.count/max*100,1)}%"></div></div>
+      <span class="bar-num">${fmt(t.count)}</span>
+    </div>`).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TOOL DETAIL
+═══════════════════════════════════════════════════════════ */
+async function loadToolDetail(toolName) {
+  const el = document.getElementById('tool-detail');
+  el.innerHTML = '<div class="detail-panel"><div class="loading">Loading…</div></div>';
+  const calls = await fetch(`/api/tool-details/${encodeURIComponent(toolName)}`).then(r=>r.json()).catch(()=>[]);
+  window._lastToolCalls = { toolName, calls };
+
+  let rows = '';
+  for (const c of calls.slice(0,200)) {
+    const proj = shortProj(c.project||''), time = fmtDT(c.timestamp);
+    if (toolName==='Bash') {
+      rows += `<div class="drow">${c.description?`<div class="d-desc">${esc(c.description)}</div>`:''}<div class="d-cmd">$ ${esc(c.command)}</div><div class="d-meta">${time} · ${proj}</div></div>`;
+    } else if (['Read','Edit','Write'].includes(toolName)) {
+      rows += `<div class="drow"><div class="d-path">${esc(c.file_path)}</div><div class="d-meta">${time} · ${proj}</div></div>`;
+    } else if (toolName==='Grep') {
+      rows += `<div class="drow"><div class="d-cmd">/${esc(c.pattern)}/</div>${c.path?`<div class="d-path">${esc(c.path)}</div>`:''}<div class="d-meta">${time} · ${proj}</div></div>`;
+    } else if (toolName==='Glob') {
+      rows += `<div class="drow"><div class="d-cmd">${esc(c.pattern)}</div>${c.path?`<div class="d-path">${esc(c.path)}</div>`:''}<div class="d-meta">${time} · ${proj}</div></div>`;
+    } else if (toolName==='Agent') {
+      rows += `<div class="drow"><div class="d-desc">${esc(c.description)}</div>${c.subagent_type?`<div class="d-path">type: ${esc(c.subagent_type)}</div>`:''}<div class="d-meta">${time} · ${proj}</div></div>`;
+    } else {
+      rows += `<div class="drow"><div class="d-cmd">${esc(c.input||'')}</div><div class="d-meta">${time} · ${proj}</div></div>`;
     }
+  }
+  if (calls.length>200) rows+=`<div class="drow d-meta">…and ${calls.length-200} more</div>`;
 
-    function exportToolCalls() {
-      const { toolName, calls } = window._lastToolCalls || {};
-      if (!toolName || !calls) return;
+  el.innerHTML = `<div class="detail-panel">
+    <div class="detail-head">
+      <span class="detail-title">${esc(toolName)} — ${fmt(calls.length)} calls</span>
+      <div class="detail-acts">
+        <button class="tbtn btn-sm" onclick="exportToolCalls()">↓ Export</button>
+        <button class="tbtn btn-sm" onclick="document.getElementById('tool-detail').innerHTML=''">✕</button>
+      </div>
+    </div>
+    ${rows}</div>`;
+}
 
-      let lines = [];
-      lines.push(`${toolName} — ${calls.length} calls`);
-      lines.push('='.repeat(50));
-      lines.push('');
+/* ═══════════════════════════════════════════════════════════
+   PROJECTS
+═══════════════════════════════════════════════════════════ */
+function setNodeFilter(section, btn) {
+  const node = btn.dataset.node;
+  const container = document.getElementById(section === 'hist' ? 'hist-node-filter' : 'proj-node-filter');
+  container.querySelectorAll('.nf-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  if (section === 'hist') { activeHistNode = node; renderHistRows(); }
+  else { activeProjNode = node; renderProjects(); }
+}
 
-      for (const c of calls) {
-        const proj = (c.project || '').split('-').pop();
-        const time = fmtDateTime(c.timestamp);
+function renderProjects() {
+  const tbody = document.getElementById('proj-body');
+  let projs = appData.projects;
+  if (activeProjNode !== 'all') projs = projs.filter(p => (p.node||'local') === activeProjNode);
+  if (!projs.length) { tbody.innerHTML='<tr><td colspan="5" class="empty">No projects.</td></tr>'; return; }
+  tbody.innerHTML = projs.map(p=>`
+    <tr>
+      <td>
+        <span class="badge">${esc(p.shortName)}</span>
+        <span class="proj-path" title="${esc(p.name)}">${esc(p.name)}</span>
+      </td>
+      <td><span class="node-badge ${esc(p.node||'local')}">${esc(p.node||'local')}</span></td>
+      <td class="r bright">${fmt(p.messages)}</td>
+      <td class="r">${fmt(p.sessions)}</td>
+      <td class="r" style="white-space:nowrap">${fmtDT(p.lastSeen)}</td>
+    </tr>`).join('');
+}
 
-        if (toolName === 'Bash') {
-          if (c.description) lines.push(c.description);
-          lines.push(`$ ${c.command}`);
-        } else if (toolName === 'Read' || toolName === 'Edit' || toolName === 'Write') {
-          lines.push(c.file_path);
-        } else if (toolName === 'Grep') {
-          lines.push(`/${c.pattern}/`);
-          if (c.path) lines.push(`  path: ${c.path}`);
-          if (c.glob) lines.push(`  glob: ${c.glob}`);
-        } else if (toolName === 'Glob') {
-          lines.push(c.pattern);
-          if (c.path) lines.push(`  path: ${c.path}`);
-        } else if (toolName === 'Agent') {
-          lines.push(c.description);
-          if (c.subagent_type) lines.push(`  type: ${c.subagent_type}`);
-        } else {
-          lines.push(c.input || '(no input)');
-        }
+function renderNodes() {
+  const { history, projects, costData } = appData;
+  const days = costData.days || [];
 
-        lines.push(`  [${time} · ${proj}]`);
-        lines.push('');
-      }
+  // Compute per-node stats from history + projects
+  const nodeStats = {};
+  for (const h of history) {
+    const n = h.node || 'local';
+    if (!nodeStats[n]) nodeStats[n] = { messages: 0, sessions: new Set(), projects: new Set() };
+    nodeStats[n].messages++;
+    if (h.sessionId) nodeStats[n].sessions.add(h.sessionId);
+    if (h.project) nodeStats[n].projects.add(h.project);
+  }
 
-      const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${toolName.toLowerCase()}-calls.txt`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
+  // Per-node project list (top 5)
+  const nodeProjects = {};
+  for (const p of projects) {
+    const n = p.node || 'local';
+    if (!nodeProjects[n]) nodeProjects[n] = [];
+    nodeProjects[n].push(p);
+  }
 
-    function escapeHtml(str) {
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
-    }
+  const nodes = Object.keys(nodeStats);
+  if (!nodes.length) {
+    document.getElementById('node-cards').innerHTML = '<div class="empty">No node data.</div>';
+    return;
+  }
 
-    load();
-  </script>
+  // Total cost is from merged daily-costs; we show per-node cost via separate fetch
+  const totalCost = (costData.totals || {}).cost || 0;
+
+  const cards = nodes.map(n => {
+    const s = nodeStats[n];
+    const topProjs = (nodeProjects[n] || []).slice(0, 4);
+    const isLocal = n === 'local';
+    return `
+      <div class="node-card nc-${n} ${activeProjNode === n ? 'active-node' : ''}" onclick="activateNodeCard('${n}')">
+        <div class="node-card-head">
+          <div class="nc-name">${n === 'local' ? '⬡ local' : '⬡ ' + n}</div>
+          <div class="nc-status">${isLocal ? 'this machine' : 'remote · rsynced'}</div>
+        </div>
+        <div class="nc-metrics">
+          <div class="nc-met">
+            <div class="nc-met-lbl">Messages</div>
+            <div class="nc-met-val ${n==='local'?'orange':'blue'}">${fmt(s.messages)}</div>
+          </div>
+          <div class="nc-met">
+            <div class="nc-met-lbl">Sessions</div>
+            <div class="nc-met-val">${fmt(s.sessions.size)}</div>
+          </div>
+          <div class="nc-met">
+            <div class="nc-met-lbl">Projects</div>
+            <div class="nc-met-val">${fmt(s.projects.size)}</div>
+          </div>
+        </div>
+        ${topProjs.length ? `
+        <div class="nc-bar-section">
+          <div class="nc-bar-lbl">Top projects</div>
+          ${topProjs.map(p=>`
+            <div class="nc-proj-row">
+              <div class="nc-proj-name" title="${esc(p.name)}">${esc(p.shortName)}</div>
+              <div class="nc-proj-msgs">${fmt(p.messages)} msgs</div>
+            </div>`).join('')}
+        </div>` : ''}
+      </div>`;
+  });
+
+  document.getElementById('node-cards').innerHTML = cards.join('');
+}
+
+function activateNodeCard(node) {
+  // clicking a node card sets the node filter on both sections
+  const newNode = (activeProjNode === node) ? 'all' : node;
+  activeProjNode = newNode;
+  activeHistNode = newNode;
+
+  // sync pill UIs
+  ['proj-node-filter','hist-node-filter'].forEach(id => {
+    const c = document.getElementById(id);
+    if (!c) return;
+    c.querySelectorAll('.nf-pill').forEach(p => {
+      p.classList.toggle('active', p.dataset.node === newNode);
+    });
+  });
+
+  renderProjects();
+  renderHistRows();
+
+  // scroll to projects section
+  document.getElementById('s-projects').scrollIntoView({ behavior:'smooth', block:'start' });
+
+  // re-render cards to update active-node highlight
+  renderNodes();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HISTORY
+═══════════════════════════════════════════════════════════ */
+function renderHistory() {
+  const { history } = appData;
+  const allProj = [...new Set(history.map(h=>h.project).filter(Boolean))];
+  const tabs = document.getElementById('hist-tabs');
+
+  tabs.innerHTML = `<button class="tab ${activeTab==='all'?'active':''}" data-p="all">All</button>`
+    + allProj.map(p=>`<button class="tab ${activeTab===p?'active':''}" data-p="${esc(p)}">${esc(shortProj(p))}</button>`).join('');
+
+  tabs.addEventListener('click', e => {
+    const btn = e.target.closest('.tab');
+    if (!btn) return;
+    activeTab = btn.dataset.p;
+    tabs.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.p===activeTab));
+    renderHistRows();
+  });
+
+  document.getElementById('hist-search').addEventListener('input', e => {
+    histFilter = e.target.value.toLowerCase();
+    renderHistRows();
+  });
+
+  renderHistRows();
+}
+
+function renderHistRows() {
+  const tbody = document.getElementById('hist-body');
+  expandedSid = null;
+  let filtered = activeTab==='all' ? appData.history : appData.history.filter(h=>h.project===activeTab);
+  if (activeHistNode !== 'all') filtered = filtered.filter(h=>(h.node||'local')===activeHistNode);
+  if (histFilter) filtered = filtered.filter(h =>
+    (h.display||'').toLowerCase().includes(histFilter)||
+    (h.project||'').toLowerCase().includes(histFilter)||
+    (h.sessionId||'').toLowerCase().includes(histFilter)
+  );
+  const sorted = [...filtered].reverse();
+  if (!sorted.length) { tbody.innerHTML='<tr><td colspan="5" class="empty">No matches.</td></tr>'; return; }
+
+  tbody.innerHTML = sorted.map(h=>`
+    <tr class="history-row" data-sid="${esc(h.sessionId||'')}">
+      <td style="white-space:nowrap;color:var(--ink-3)">${fmtDT(h.timestamp)}</td>
+      <td><span class="node-badge ${esc(h.node||'local')}">${esc(h.node||'local')}</span></td>
+      <td><span class="badge">${esc(shortProj(h.project))}</span></td>
+      <td class="prompt-cell" title="${esc(h.display||'').replace(/"/g,'&quot;')}">
+        ${esc(h.display||'')}
+        <span class="thread-mark">▸</span>
+      </td>
+      <td class="sid">${(h.sessionId||'').slice(0,8)}</td>
+    </tr>`).join('');
+
+  tbody.addEventListener('click', e => {
+    const row = e.target.closest('.history-row');
+    if (row) handleThread(row, row.dataset.sid);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SESSION THREAD
+═══════════════════════════════════════════════════════════ */
+async function handleThread(row, sid) {
+  const existing = row.nextElementSibling;
+  if (existing?.classList.contains('thread-row')) {
+    existing.remove();
+    row.classList.remove('expanded');
+    expandedSid=null;
+    return;
+  }
+  document.querySelectorAll('.thread-row').forEach(r=>r.remove());
+  document.querySelectorAll('.history-row.expanded').forEach(r=>r.classList.remove('expanded'));
+  row.classList.add('expanded');
+  expandedSid=sid;
+
+  const tr = document.createElement('tr');
+  tr.className='thread-row';
+  tr.innerHTML=`<td colspan="4"><div class="thread-wrap"><div class="loading">Loading thread…</div></div></td>`;
+  row.after(tr);
+
+  const msgs = await fetch(`/api/session/${encodeURIComponent(sid)}`).then(r=>r.json()).catch(()=>[]);
+  const wrap = tr.querySelector('.thread-wrap');
+
+  if (!msgs.length) { wrap.innerHTML='<div class="empty">No messages found.</div>'; return; }
+
+  wrap.innerHTML = msgs.map(m=>{
+    const isU = m.type==='user';
+    let body='';
+    if (m.text) body+=`<div class="t-text" onclick="this.classList.toggle('open')">${esc(m.text)}${m.text.length>=3000?'…':''}</div>`;
+    if (!isU && m.toolUses?.length) body+=`<div class="t-tools">${m.toolUses.map(t=>`<span class="t-chip" title="${esc(t.summary)}">${esc(t.name)}</span>`).join('')}</div>`;
+    const meta=[fmtDT(m.timestamp),m.model?m.model.split('-').slice(-2).join('-'):null,m.tokens?fmt(m.tokens)+' tokens':null].filter(Boolean).join(' · ');
+    body+=`<div class="t-meta">${meta}</div>`;
+    return `<div class="thread-msg">
+      <div class="t-av ${m.type}">${isU?'U':'AI'}</div>
+      <div class="t-body"><div class="t-role">${isU?'You':'Claude'}</div>${body}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GLOBAL SEARCH
+═══════════════════════════════════════════════════════════ */
+document.getElementById('global-search').addEventListener('input', e => {
+  histFilter = e.target.value.toLowerCase();
+  document.getElementById('hist-search').value = histFilter;
+  if (histFilter) {
+    document.getElementById('s-history').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  renderHistRows();
+});
+
+/* ═══════════════════════════════════════════════════════════
+   EXPORTS
+═══════════════════════════════════════════════════════════ */
+function dlCSV(name, rows) {
+  const blob = new Blob([rows.join('\n')],{type:'text/csv'});
+  const a = Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:name});
+  a.click(); URL.revokeObjectURL(a.href);
+}
+function exportDailyCostsCSV() {
+  const { costData } = appData;
+  const rows=['Date,Messages,Tool Calls,Sessions,Cache Read,Cache Write,Hit Rate %,Cost,Saved'];
+  for (const d of costData.days||[]) {
+    const ai=d.input+d.cacheRead+d.cacheCreate, hr=ai>0?d.cacheRead/ai*100:0;
+    const sv=Math.max(0,(d.noCacheCost||0)-d.cost);
+    rows.push(`${d.date},${d.messages},${d.toolCalls},${d.sessions},${d.cacheRead},${d.cacheCreate},${hr.toFixed(1)},${d.cost.toFixed(4)},${sv.toFixed(4)}`);
+  }
+  dlCSV('claude-lens-daily.csv',rows);
+}
+function exportToolsCSV() {
+  const rows=['Tool,Count'];
+  for (const t of appData.toolData.tools||[]) rows.push(`${t.tool},${t.count}`);
+  dlCSV('claude-lens-tools.csv',rows);
+}
+function exportProjectsCSV() {
+  const rows=['Project,Short Name,Messages,Sessions,First Seen,Last Seen'];
+  for (const p of appData.projects) rows.push(`"${p.name}","${p.shortName}",${p.messages},${p.sessions},"${p.firstSeen||''}","${p.lastSeen||''}"`);
+  dlCSV('claude-lens-projects.csv',rows);
+}
+function exportToolCalls() {
+  const { toolName, calls } = window._lastToolCalls||{};
+  if (!toolName||!calls) return;
+  const lines=[`${toolName} — ${calls.length} calls`,'='.repeat(50),''];
+  for (const c of calls) {
+    if (toolName==='Bash') { if(c.description)lines.push(c.description); lines.push(`$ ${c.command}`); }
+    else if (['Read','Edit','Write'].includes(toolName)) lines.push(c.file_path);
+    else if (toolName==='Grep') { lines.push(`/${c.pattern}/`); if(c.path)lines.push(`  path: ${c.path}`); if(c.glob)lines.push(`  glob: ${c.glob}`); }
+    else if (toolName==='Glob') { lines.push(c.pattern); if(c.path)lines.push(`  path: ${c.path}`); }
+    else if (toolName==='Agent') { lines.push(c.description); if(c.subagent_type)lines.push(`  type: ${c.subagent_type}`); }
+    else lines.push(c.input||'');
+    lines.push(`  [${fmtDT(c.timestamp)} · ${shortProj(c.project||'')}]`,'');
+  }
+  const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/plain'})),download:`${toolName.toLowerCase()}-calls.txt`});
+  a.click();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════════ */
+initSSE();
+load();
+</script>
 </body>
 </html>
