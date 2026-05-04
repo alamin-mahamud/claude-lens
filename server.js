@@ -270,11 +270,14 @@ app.get("/api/projects", (req, res) => {
 });
 
 // GET /api/daily-costs — token usage and estimated cost per day merged across all sources
+// Optional ?node=local|burak to filter to a specific node
 app.get("/api/daily-costs", async (req, res) => {
   try {
+    const nodeFilter = req.query.node || null;
     const daily = {};
 
-    for (const { dir } of getSourceDirs()) {
+    for (const { dir, node } of getSourceDirs()) {
+      if (nodeFilter && node !== nodeFilter) continue;
       const projectsDir = path.join(dir, "projects");
       if (!fs.existsSync(projectsDir)) continue;
 

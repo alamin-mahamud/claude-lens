@@ -23,8 +23,8 @@
   --line-strong:  rgba(20,20,19,.18);
 
   --ink:          #141413;
-  --ink-2:        #4a4743;
-  --ink-3:        #9a9690;
+  --ink-2:        #2e2b27;
+  --ink-3:        #6b6760;
 
   --gold:         #d97757;
   --gold-dim:     rgba(217,119,87,.1);
@@ -466,7 +466,7 @@ input{font-family:inherit}
   letter-spacing:-.01em;
   line-height:1.3;
 }
-.insight-desc{font-size:13px;color:var(--ink-2);line-height:1.68}
+.insight-desc{font-size:14px;color:var(--ink-2);line-height:1.7}
 .impact-badge{
   font-family:var(--fm);
   font-size:10px;
@@ -540,11 +540,12 @@ input{font-family:inherit}
   padding:18px 16px;
 }
 .met-lbl{
-  font-family:var(--fm);
-  font-size:10px;
-  letter-spacing:.08em;
+  font-family:var(--fw);
+  font-size:11px;
+  letter-spacing:.04em;
   text-transform:uppercase;
   color:var(--ink-3);
+  font-weight:600;
   margin-bottom:10px;
   display:flex;
   align-items:center;
@@ -563,7 +564,7 @@ input{font-family:inherit}
 .met-val.green{color:var(--green)}
 .met-val.red{color:var(--red)}
 .met-val.blue{color:var(--blue)}
-.met-sub{font-family:var(--fm);font-size:10px;color:var(--ink-3);margin-top:5px;letter-spacing:.01em}
+.met-sub{font-family:var(--fb);font-size:12px;color:var(--ink-3);margin-top:5px;line-height:1.4}
 .met-div{
   height:1px;background:var(--line);
   margin:1px 0;
@@ -612,11 +613,12 @@ input{font-family:inherit}
   padding:26px 24px;
 }
 .cc-label{
-  font-family:var(--fm);
-  font-size:10px;
-  letter-spacing:.09em;
+  font-family:var(--fw);
+  font-size:11px;
+  letter-spacing:.04em;
   text-transform:uppercase;
   color:var(--ink-3);
+  font-weight:600;
   margin-bottom:14px;
   display:flex;
   align-items:center;
@@ -632,7 +634,7 @@ input{font-family:inherit}
   margin-bottom:6px;
   line-height:1.05;
 }
-.cc-sub{font-family:var(--fm);font-size:11px;color:var(--ink-3);letter-spacing:.01em;line-height:1.4}
+.cc-sub{font-family:var(--fb);font-size:13px;color:var(--ink-3);line-height:1.45}
 
 /* ─────────────────────────────────────────────────────────────
    BAR CHART ROWS (separated)
@@ -674,12 +676,12 @@ input{font-family:inherit}
   height:100%;
   background:var(--gold);
   border-radius:2px;
-  opacity:.7;
+  opacity:.9;
   transform-origin:left;
   animation:barSlide .8s var(--ease) both;
 }
 @keyframes barSlide{from{transform:scaleX(0)}}
-.bar-row.cost .bar-fill{background:var(--red);opacity:.6}
+.bar-row.cost .bar-fill{background:var(--red);opacity:.8}
 .bar-row.tool .bar-fill{background:var(--gold)}
 .bar-num{
   font-family:var(--fm);
@@ -696,15 +698,15 @@ input{font-family:inherit}
 table{width:100%;border-collapse:collapse;font-size:13px}
 thead tr{border-bottom:1px solid var(--line-mid)}
 th{
-  font-family:var(--fm);
-  font-size:10px;
-  letter-spacing:.09em;
+  font-family:var(--fw);
+  font-size:11px;
+  letter-spacing:.04em;
   text-transform:uppercase;
   color:var(--ink-3);
   padding:0 16px 12px;
   text-align:left;
   white-space:nowrap;
-  font-weight:400;
+  font-weight:600;
   line-height:1;
 }
 th.r{text-align:right}
@@ -712,10 +714,11 @@ td{
   padding:13px 16px;
   border-bottom:1px solid var(--line);
   color:var(--ink-2);
-  font-family:var(--fm);
-  font-size:13px;
+  font-family:var(--fw);
+  font-size:13.5px;
+  font-weight:400;
   vertical-align:middle;
-  line-height:1.4;
+  line-height:1.45;
 }
 td.r{text-align:right}
 td.bright{color:var(--ink)}
@@ -937,6 +940,147 @@ tbody tr:last-child td{border-bottom:none}
 }
 
 /* ─────────────────────────────────────────────────────────────
+   NODE FILTER BAR
+───────────────────────────────────────────────────────────── */
+.node-filter{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-bottom:24px;
+  flex-wrap:wrap;
+}
+.node-filter-label{
+  font-family:var(--fw);
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  margin-right:4px;
+}
+.nf-pill{
+  font-family:var(--fw);
+  font-size:12px;
+  font-weight:500;
+  padding:5px 14px;
+  border-radius:20px;
+  border:1px solid var(--line-mid);
+  color:var(--ink-2);
+  cursor:pointer;
+  transition:all .15s;
+  background:var(--s1);
+}
+.nf-pill:hover{border-color:var(--gold);color:var(--gold)}
+.nf-pill.active{background:var(--gold);color:#fff;border-color:var(--gold)}
+.nf-pill.node-burak.active{background:var(--blue);border-color:var(--blue)}
+.nf-pill.node-burak:not(.active):hover{border-color:var(--blue);color:var(--blue)}
+
+/* ─────────────────────────────────────────────────────────────
+   NODE COMPARISON CARDS
+───────────────────────────────────────────────────────────── */
+.node-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:16px;
+  margin-bottom:8px;
+}
+.node-card{
+  background:var(--s1);
+  border:1px solid var(--line-mid);
+  border-radius:12px;
+  padding:24px;
+  position:relative;
+  overflow:hidden;
+  cursor:pointer;
+  transition:border-color .15s,box-shadow .15s;
+}
+.node-card:hover{box-shadow:0 4px 20px rgba(20,20,19,.08)}
+.node-card.active-node{box-shadow:0 4px 20px rgba(20,20,19,.1)}
+.node-card.active-node.nc-local{border-color:rgba(217,119,87,.4)}
+.node-card.active-node.nc-burak{border-color:rgba(106,155,204,.4)}
+.node-card::before{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;
+  height:3px;
+}
+.nc-local::before{background:var(--gold)}
+.nc-burak::before{background:var(--blue)}
+.nc-all::before{background:linear-gradient(to right,var(--gold),var(--blue))}
+.node-card-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:20px;
+}
+.nc-name{
+  font-family:var(--fw);
+  font-size:15px;
+  font-weight:600;
+  color:var(--ink);
+  letter-spacing:-.01em;
+}
+.nc-status{
+  font-family:var(--fm);
+  font-size:11px;
+  color:var(--ink-3);
+}
+.nc-metrics{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:1px;
+  background:var(--line);
+  border-radius:8px;
+  overflow:hidden;
+  margin-bottom:16px;
+}
+.nc-met{
+  background:var(--s1);
+  padding:14px 12px;
+}
+.nc-met-lbl{
+  font-family:var(--fw);
+  font-size:10.5px;
+  font-weight:600;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  margin-bottom:6px;
+  line-height:1;
+}
+.nc-met-val{
+  font-family:var(--fm);
+  font-size:22px;
+  font-weight:500;
+  color:var(--ink);
+  letter-spacing:-.03em;
+  line-height:1.1;
+}
+.nc-met-val.orange{color:var(--gold)}
+.nc-met-val.blue{color:var(--blue)}
+.nc-bar-section{margin-top:4px}
+.nc-bar-lbl{
+  font-family:var(--fw);
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  margin-bottom:10px;
+}
+.nc-proj-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:7px 0;
+  border-bottom:1px solid var(--line);
+  font-size:13px;
+}
+.nc-proj-row:last-child{border-bottom:none}
+.nc-proj-name{flex:1;color:var(--ink-2);font-family:var(--fw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nc-proj-msgs{font-family:var(--fm);font-size:12px;color:var(--ink-3);flex-shrink:0}
+
+/* ─────────────────────────────────────────────────────────────
    NODE BADGE
 ───────────────────────────────────────────────────────────── */
 .node-badge{
@@ -1006,7 +1150,8 @@ tbody tr:last-child td{border-bottom:none}
   <nav class="nav" id="sidebar-nav">
     <a class="nav-item active" href="#s-insights" onclick="navClick(this)"><span class="nav-dot"></span>Insights</a>
     <a class="nav-item" href="#s-summary"  onclick="navClick(this)"><span class="nav-dot"></span>Summary</a>
-    <a class="nav-item" href="#s-cache"    onclick="navClick(this)"><span class="nav-dot"></span>Cache</a>
+    <a class="nav-item" href="#s-nodes"   onclick="navClick(this)"><span class="nav-dot"></span>Nodes</a>
+    <a class="nav-item" href="#s-cache"   onclick="navClick(this)"><span class="nav-dot"></span>Cache</a>
     <a class="nav-item" href="#s-daily"    onclick="navClick(this)"><span class="nav-dot"></span>Daily Cost</a>
     <a class="nav-item" href="#s-tools"    onclick="navClick(this)"><span class="nav-dot"></span>Tool Calls</a>
     <a class="nav-item" href="#s-projects" onclick="navClick(this)"><span class="nav-dot"></span>Projects</a>
@@ -1119,6 +1264,16 @@ tbody tr:last-child td{border-bottom:none}
       </div>
     </div>
 
+    <!-- ── NODES ─────────────────────────────────────────────── -->
+    <div class="section" id="s-nodes">
+      <div class="section-sep"></div>
+      <div style="margin-top:48px">
+        <div class="section-eyebrow" style="margin-bottom:6px">Node Breakdown</div>
+        <div class="section-heading">Usage by machine</div>
+        <div id="node-cards" class="node-grid"><div class="loading">Loading…</div></div>
+      </div>
+    </div>
+
     <!-- ── CACHE ────────────────────────────────────────────── -->
     <div class="section" id="s-cache">
       <div class="section-sep"></div>
@@ -1177,6 +1332,12 @@ tbody tr:last-child td{border-bottom:none}
         </div>
         <button class="tbtn" style="margin-top:4px;flex-shrink:0" onclick="exportProjectsCSV()">↓ CSV</button>
       </div>
+      <div class="node-filter" id="proj-node-filter">
+        <span class="node-filter-label">Node</span>
+        <button class="nf-pill active" data-node="all" onclick="setNodeFilter('proj',this)">All</button>
+        <button class="nf-pill node-local" data-node="local" onclick="setNodeFilter('proj',this)">local</button>
+        <button class="nf-pill node-burak" data-node="burak" onclick="setNodeFilter('proj',this)">burak</button>
+      </div>
       <div class="tbl-wrap">
         <table>
           <thead><tr>
@@ -1199,6 +1360,12 @@ tbody tr:last-child td{border-bottom:none}
           Recent Claude Code prompts
           <span class="tip" data-tip="From history.jsonl. Click any row to expand the full session conversation thread.">?</span>
         </div>
+      </div>
+      <div class="node-filter" id="hist-node-filter" style="margin-bottom:12px">
+        <span class="node-filter-label">Node</span>
+        <button class="nf-pill active" data-node="all" onclick="setNodeFilter('hist',this)">All</button>
+        <button class="nf-pill node-local" data-node="local" onclick="setNodeFilter('hist',this)">local</button>
+        <button class="nf-pill node-burak" data-node="burak" onclick="setNodeFilter('hist',this)">burak</button>
       </div>
       <div class="hist-controls">
         <div class="tabs" id="hist-tabs"></div>
@@ -1252,6 +1419,7 @@ const hrClass = r => r > 80 ? 'hr-hi' : r > 50 ? 'hr-mid' : 'hr-lo';
 ═══════════════════════════════════════════════════════════ */
 let appData = { history:[], toolData:{}, projects:[], costData:{} };
 let activeTab = 'all', histFilter = '', expandedSid = null;
+let activeHistNode = 'all', activeProjNode = 'all';
 
 /* ═══════════════════════════════════════════════════════════
    TOOLTIP
@@ -1348,6 +1516,7 @@ async function load() {
   renderProjects();
   renderHistory();
   renderFootStats();
+  renderNodes();
   checkRemoteStatus();
 }
 
@@ -1864,10 +2033,21 @@ async function loadToolDetail(toolName) {
 /* ═══════════════════════════════════════════════════════════
    PROJECTS
 ═══════════════════════════════════════════════════════════ */
+function setNodeFilter(section, btn) {
+  const node = btn.dataset.node;
+  const container = document.getElementById(section === 'hist' ? 'hist-node-filter' : 'proj-node-filter');
+  container.querySelectorAll('.nf-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  if (section === 'hist') { activeHistNode = node; renderHistRows(); }
+  else { activeProjNode = node; renderProjects(); }
+}
+
 function renderProjects() {
   const tbody = document.getElementById('proj-body');
-  if (!appData.projects.length) { tbody.innerHTML='<tr><td colspan="5" class="empty">No projects.</td></tr>'; return; }
-  tbody.innerHTML = appData.projects.map(p=>`
+  let projs = appData.projects;
+  if (activeProjNode !== 'all') projs = projs.filter(p => (p.node||'local') === activeProjNode);
+  if (!projs.length) { tbody.innerHTML='<tr><td colspan="5" class="empty">No projects.</td></tr>'; return; }
+  tbody.innerHTML = projs.map(p=>`
     <tr>
       <td>
         <span class="badge">${esc(p.shortName)}</span>
@@ -1878,6 +2058,101 @@ function renderProjects() {
       <td class="r">${fmt(p.sessions)}</td>
       <td class="r" style="white-space:nowrap">${fmtDT(p.lastSeen)}</td>
     </tr>`).join('');
+}
+
+function renderNodes() {
+  const { history, projects, costData } = appData;
+  const days = costData.days || [];
+
+  // Compute per-node stats from history + projects
+  const nodeStats = {};
+  for (const h of history) {
+    const n = h.node || 'local';
+    if (!nodeStats[n]) nodeStats[n] = { messages: 0, sessions: new Set(), projects: new Set() };
+    nodeStats[n].messages++;
+    if (h.sessionId) nodeStats[n].sessions.add(h.sessionId);
+    if (h.project) nodeStats[n].projects.add(h.project);
+  }
+
+  // Per-node project list (top 5)
+  const nodeProjects = {};
+  for (const p of projects) {
+    const n = p.node || 'local';
+    if (!nodeProjects[n]) nodeProjects[n] = [];
+    nodeProjects[n].push(p);
+  }
+
+  const nodes = Object.keys(nodeStats);
+  if (!nodes.length) {
+    document.getElementById('node-cards').innerHTML = '<div class="empty">No node data.</div>';
+    return;
+  }
+
+  // Total cost is from merged daily-costs; we show per-node cost via separate fetch
+  const totalCost = (costData.totals || {}).cost || 0;
+
+  const cards = nodes.map(n => {
+    const s = nodeStats[n];
+    const topProjs = (nodeProjects[n] || []).slice(0, 4);
+    const isLocal = n === 'local';
+    return `
+      <div class="node-card nc-${n} ${activeProjNode === n ? 'active-node' : ''}" onclick="activateNodeCard('${n}')">
+        <div class="node-card-head">
+          <div class="nc-name">${n === 'local' ? '⬡ local' : '⬡ ' + n}</div>
+          <div class="nc-status">${isLocal ? 'this machine' : 'remote · rsynced'}</div>
+        </div>
+        <div class="nc-metrics">
+          <div class="nc-met">
+            <div class="nc-met-lbl">Messages</div>
+            <div class="nc-met-val ${n==='local'?'orange':'blue'}">${fmt(s.messages)}</div>
+          </div>
+          <div class="nc-met">
+            <div class="nc-met-lbl">Sessions</div>
+            <div class="nc-met-val">${fmt(s.sessions.size)}</div>
+          </div>
+          <div class="nc-met">
+            <div class="nc-met-lbl">Projects</div>
+            <div class="nc-met-val">${fmt(s.projects.size)}</div>
+          </div>
+        </div>
+        ${topProjs.length ? `
+        <div class="nc-bar-section">
+          <div class="nc-bar-lbl">Top projects</div>
+          ${topProjs.map(p=>`
+            <div class="nc-proj-row">
+              <div class="nc-proj-name" title="${esc(p.name)}">${esc(p.shortName)}</div>
+              <div class="nc-proj-msgs">${fmt(p.messages)} msgs</div>
+            </div>`).join('')}
+        </div>` : ''}
+      </div>`;
+  });
+
+  document.getElementById('node-cards').innerHTML = cards.join('');
+}
+
+function activateNodeCard(node) {
+  // clicking a node card sets the node filter on both sections
+  const newNode = (activeProjNode === node) ? 'all' : node;
+  activeProjNode = newNode;
+  activeHistNode = newNode;
+
+  // sync pill UIs
+  ['proj-node-filter','hist-node-filter'].forEach(id => {
+    const c = document.getElementById(id);
+    if (!c) return;
+    c.querySelectorAll('.nf-pill').forEach(p => {
+      p.classList.toggle('active', p.dataset.node === newNode);
+    });
+  });
+
+  renderProjects();
+  renderHistRows();
+
+  // scroll to projects section
+  document.getElementById('s-projects').scrollIntoView({ behavior:'smooth', block:'start' });
+
+  // re-render cards to update active-node highlight
+  renderNodes();
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1911,6 +2186,7 @@ function renderHistRows() {
   const tbody = document.getElementById('hist-body');
   expandedSid = null;
   let filtered = activeTab==='all' ? appData.history : appData.history.filter(h=>h.project===activeTab);
+  if (activeHistNode !== 'all') filtered = filtered.filter(h=>(h.node||'local')===activeHistNode);
   if (histFilter) filtered = filtered.filter(h =>
     (h.display||'').toLowerCase().includes(histFilter)||
     (h.project||'').toLowerCase().includes(histFilter)||
