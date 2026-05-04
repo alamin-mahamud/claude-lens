@@ -3,1751 +3,1924 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Claude Lens — Usage Dashboard</title>
+  <title>Claude Lens</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
   <style>
-    /* ── Design Tokens ────────────────────────────────────────── */
-    :root {
-      --bg:          #1c1929;
-      --bg-card:     #251f35;
-      --bg-hover:    #2e2742;
-      --bg-code:     #1a1624;
-      --border:      #3a3150;
-      --border-sub:  #2e2742;
-      --text:        #ede8f7;
-      --text-muted:  #9587b8;
-      --text-dim:    #574d72;
-      --accent:      #cc7a54;
-      --accent-glow: rgba(204,122,84,.15);
-      --green:       #4dba9c;
-      --blue:        #6baaf0;
-      --purple:      #b08def;
-      --amber:       #d4974e;
-      --red:         #e06878;
-      --mono:        'SF Mono','Cascadia Code','Fira Code',Consolas,monospace;
-      --sans:        'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-      --radius:      10px;
-      --radius-sm:   6px;
-    }
+/* ─────────────────────────────────────────────────────────────
+   TOKENS
+───────────────────────────────────────────────────────────── */
+:root {
+  --bg:           #09090c;
+  --s1:           #0f0f13;
+  --s2:           #151519;
+  --s3:           #1c1c22;
+  --s4:           #242430;
 
-    /* ── Reset & Base ─────────────────────────────────────────── */
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: var(--sans);
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.55;
-      min-height: 100vh;
-    }
-    a { color: var(--accent); text-decoration: none; }
-    button { font-family: var(--sans); cursor: pointer; }
-    code, .mono { font-family: var(--mono); }
+  --line:         rgba(255,255,255,.055);
+  --line-mid:     rgba(255,255,255,.09);
+  --line-strong:  rgba(255,255,255,.16);
 
-    /* ── Layout ───────────────────────────────────────────────── */
-    .page { max-width: 1200px; margin: 0 auto; padding: 0 24px 48px; }
-    .section { margin-bottom: 36px; }
-    .section-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-    .section-header h2 {
-      font-size: .8rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: .07em;
-      flex: 1;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
+  --ink:          #ece8df;
+  --ink-2:        #908b97;
+  --ink-3:        #4e4a57;
 
-    /* ── Header ───────────────────────────────────────────────── */
-    .site-header {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 20px 0 24px;
-      border-bottom: 1px solid var(--border-sub);
-      margin-bottom: 28px;
-      flex-wrap: wrap;
-    }
-    .header-brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .claude-mark {
-      width: 34px;
-      height: 34px;
-      background: var(--accent);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: .9rem;
-      color: #fff;
-      flex-shrink: 0;
-      letter-spacing: -.02em;
-    }
-    .header-title { font-size: 1.1rem; font-weight: 700; color: var(--text); }
-    .header-sub   { font-size: .72rem; color: var(--text-dim); margin-top: 1px; }
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-left: auto;
-      flex-wrap: wrap;
-    }
-    .live-indicator {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: .72rem;
-      color: var(--text-dim);
-    }
-    .live-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--text-dim);
-      transition: background .3s;
-    }
-    .live-dot.connected   { background: var(--green); }
-    .live-dot.refreshing  { background: var(--amber); animation: pulse .6s infinite; }
-    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+  --gold:         #c9a84c;
+  --gold-dim:     rgba(201,168,76,.1);
+  --gold-glow:    rgba(201,168,76,.22);
 
-    .search-wrap {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-    .search-wrap .search-icon {
-      position: absolute;
-      left: 10px;
-      color: var(--text-dim);
-      font-size: .85rem;
-      pointer-events: none;
-    }
-    #global-search {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      color: var(--text);
-      font-family: var(--sans);
-      font-size: .8rem;
-      padding: 7px 12px 7px 30px;
-      width: 240px;
-      outline: none;
-      transition: border-color .15s;
-    }
-    #global-search:focus { border-color: var(--accent); }
-    #global-search::placeholder { color: var(--text-dim); }
+  --green:        #4db899;
+  --red:          #d96070;
+  --blue:         #6090d8;
+  --violet:       #9b7ed4;
 
-    .btn {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      color: var(--text-muted);
-      font-size: .75rem;
-      padding: 6px 12px;
-      transition: all .15s;
-    }
-    .btn:hover { background: var(--bg-hover); color: var(--text); border-color: var(--accent); }
-    .btn-accent {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #fff;
-    }
-    .btn-accent:hover { background: #d98a64; border-color: #d98a64; color: #fff; }
-    .btn-sm { padding: 4px 10px; font-size: .7rem; }
+  --fw:           'Syne', sans-serif;
+  --fm:           'DM Mono', monospace;
 
-    /* ── Explainer Banner ─────────────────────────────────────── */
-    .explainer {
-      background: var(--bg-card);
-      border: 1px solid var(--border-sub);
-      border-left: 3px solid var(--accent);
-      border-radius: var(--radius);
-      margin-bottom: 28px;
-      overflow: hidden;
-    }
-    .explainer-toggle {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      width: 100%;
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      font-size: .8rem;
-      font-weight: 600;
-      padding: 12px 16px;
-      text-align: left;
-      gap: 8px;
-    }
-    .explainer-toggle:hover { color: var(--text); }
-    .explainer-toggle .chevron { transition: transform .2s; font-size: .7rem; }
-    .explainer-toggle.open .chevron { transform: rotate(180deg); }
-    .explainer-body {
-      display: none;
-      padding: 4px 16px 16px;
-    }
-    .explainer-body.open { display: block; }
-    .explainer-flow {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 12px;
-      margin-top: 10px;
-    }
-    .flow-item {
-      background: var(--bg);
-      border: 1px solid var(--border-sub);
-      border-radius: var(--radius-sm);
-      padding: 10px 12px;
-    }
-    .flow-source {
-      font-family: var(--mono);
-      font-size: .72rem;
-      color: var(--accent);
-      margin-bottom: 4px;
-    }
-    .flow-arrow { color: var(--text-dim); margin: 0 4px; }
-    .flow-desc { font-size: .72rem; color: var(--text-muted); }
-    .flow-feeds { font-size: .68rem; color: var(--text-dim); margin-top: 4px; }
-    .flow-feeds span {
-      display: inline-block;
-      background: var(--bg-hover);
-      border-radius: 3px;
-      padding: 1px 5px;
-      margin: 2px 2px 0 0;
-      color: var(--purple);
-    }
-    .explainer-note {
-      font-size: .72rem;
-      color: var(--text-dim);
-      margin-top: 12px;
-      padding-top: 10px;
-      border-top: 1px solid var(--border-sub);
-    }
+  --sw:           240px;   /* sidebar width */
+  --ease:         cubic-bezier(.16,1,.3,1);
+}
 
-    /* ── Tooltip System ───────────────────────────────────────── */
-    .tip {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: var(--bg-hover);
-      border: 1px solid var(--border);
-      color: var(--text-dim);
-      font-size: .65rem;
-      font-weight: 700;
-      cursor: help;
-      flex-shrink: 0;
-      vertical-align: middle;
-      position: relative;
-    }
-    .tip:hover { border-color: var(--accent); color: var(--accent); }
-    #tooltip-popup {
-      position: fixed;
-      z-index: 999;
-      background: var(--bg-code);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      color: var(--text-muted);
-      font-size: .75rem;
-      line-height: 1.5;
-      max-width: 300px;
-      padding: 8px 12px;
-      pointer-events: none;
-      box-shadow: 0 8px 24px rgba(0,0,0,.4);
-      display: none;
-    }
+/* ─────────────────────────────────────────────────────────────
+   RESET
+───────────────────────────────────────────────────────────── */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{height:100%;font-size:14px}
+body{
+  font-family:var(--fw);
+  background:var(--bg);
+  color:var(--ink);
+  height:100%;
+  display:flex;
+  overflow:hidden;
+}
+button{font-family:inherit;cursor:pointer;background:none;border:none}
+input{font-family:inherit}
+::selection{background:var(--gold-dim);color:var(--gold)}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--s4);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:var(--ink-3)}
 
-    /* ── Insight Cards ────────────────────────────────────────── */
-    .insights-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 12px;
-    }
-    .insight-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-sub);
-      border-radius: var(--radius);
-      padding: 14px 16px;
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-      transition: border-color .15s;
-    }
-    .insight-card:hover { border-color: var(--border); }
-    .insight-card.high    { border-left: 3px solid var(--red); }
-    .insight-card.medium  { border-left: 3px solid var(--amber); }
-    .insight-card.positive{ border-left: 3px solid var(--green); }
-    .insight-card.info,
-    .insight-card.low     { border-left: 3px solid var(--blue); }
-    .insight-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
-    .insight-body {}
-    .insight-title {
-      font-size: .82rem;
-      font-weight: 600;
-      color: var(--text);
-      margin-bottom: 4px;
-    }
-    .insight-desc { font-size: .75rem; color: var(--text-muted); line-height: 1.5; }
+/* ─────────────────────────────────────────────────────────────
+   SIDEBAR
+───────────────────────────────────────────────────────────── */
+.sidebar{
+  width:var(--sw);
+  min-width:var(--sw);
+  height:100vh;
+  border-right:1px solid var(--line);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  position:relative;
+  background:var(--s1);
+}
+.sidebar::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:radial-gradient(ellipse 200px 300px at 50% 0%,rgba(201,168,76,.04) 0%,transparent 100%);
+  pointer-events:none;
+}
 
-    /* ── Summary Panels ───────────────────────────────────────── */
-    .summary-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 4px;
-    }
-    @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
-    .summary-panel {
-      background: var(--bg-card);
-      border: 1px solid var(--border-sub);
-      border-radius: var(--radius);
-      padding: 20px;
-    }
-    .summary-panel.today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-glow); }
-    .panel-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-    .panel-badge {
-      font-size: .65rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .07em;
-      padding: 3px 8px;
-      border-radius: 4px;
-    }
-    .today .panel-badge { background: var(--accent); color: #fff; }
-    .alltime .panel-badge { background: var(--bg-hover); color: var(--text-muted); }
-    .panel-date { font-size: .72rem; color: var(--text-dim); }
-    .metric-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-    }
-    @media (max-width: 480px) { .metric-grid { grid-template-columns: repeat(2, 1fr); } }
-    .metric {
-      padding: 10px;
-      border-radius: var(--radius-sm);
-      background: var(--bg);
-    }
-    .metric-label {
-      font-size: .62rem;
-      color: var(--text-dim);
-      text-transform: uppercase;
-      letter-spacing: .05em;
-      margin-bottom: 4px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .metric-value {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: var(--text);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      font-family: var(--mono);
-    }
-    .metric-value.green  { color: var(--green); }
-    .metric-value.blue   { color: var(--blue); }
-    .metric-value.amber  { color: var(--amber); }
-    .metric-value.red    { color: var(--red); }
-    .metric-value.purple { color: var(--purple); }
-    .metric-sub { font-size: .6rem; color: var(--text-dim); margin-top: 2px; }
-    .summary-divider {
-      border: none;
-      border-top: 1px solid var(--border-sub);
-      margin: 14px 0;
-    }
-    .top-models { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-sub); }
-    .model-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 3px 0;
-      font-size: .72rem;
-    }
-    .model-rank { color: var(--text-dim); min-width: 14px; }
-    .model-name { color: var(--purple); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .model-count { color: var(--text-dim); white-space: nowrap; }
+/* brand */
+.brand{
+  padding:28px 24px 0;
+  flex-shrink:0;
+}
+.brand-mark{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:28px;
+}
+.brand-icon{
+  width:30px;height:30px;
+  background:var(--gold);
+  border-radius:6px;
+  display:grid;
+  place-items:center;
+  flex-shrink:0;
+}
+.brand-icon svg{width:16px;height:16px;fill:var(--bg)}
+.brand-name{
+  font-size:13px;
+  font-weight:700;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--ink);
+}
+.brand-ver{
+  font-family:var(--fm);
+  font-size:10px;
+  color:var(--ink-3);
+  margin-top:1px;
+}
 
-    /* ── Cards (Cache Performance) ────────────────────────────── */
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 12px;
-    }
-    .card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-sub);
-      border-radius: var(--radius);
-      padding: 16px;
-      min-width: 0;
-    }
-    .card .label {
-      font-size: .68rem;
-      color: var(--text-dim);
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      margin-bottom: 6px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .card .value {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--text);
-      font-family: var(--mono);
-    }
-    .card .sub { font-size: .68rem; color: var(--text-dim); margin-top: 3px; }
+/* search */
+.search-box{
+  margin:0 24px 28px;
+  position:relative;
+}
+.search-box input{
+  width:100%;
+  background:var(--s2);
+  border:1px solid var(--line);
+  border-radius:6px;
+  color:var(--ink);
+  font-family:var(--fm);
+  font-size:11px;
+  padding:8px 10px 8px 30px;
+  outline:none;
+  transition:border-color .15s;
+}
+.search-box input:focus{border-color:var(--gold)}
+.search-box input::placeholder{color:var(--ink-3)}
+.search-box .ico{
+  position:absolute;
+  left:10px;top:50%;
+  transform:translateY(-50%);
+  color:var(--ink-3);
+  font-size:12px;
+  pointer-events:none;
+}
 
-    /* ── Tables (shared) ──────────────────────────────────────── */
-    .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: .8rem; }
-    th {
-      text-align: left;
-      color: var(--text-dim);
-      font-weight: 600;
-      padding: 8px 12px;
-      border-bottom: 1px solid var(--border);
-      text-transform: uppercase;
-      font-size: .67rem;
-      letter-spacing: .06em;
-      white-space: nowrap;
-    }
-    td { padding: 7px 12px; border-bottom: 1px solid var(--border-sub); vertical-align: middle; }
-    tr:last-child td { border-bottom: none; }
-    tbody tr:hover td { background: var(--bg-hover); }
-    .val { text-align: right; font-family: var(--mono); font-size: .78rem; }
-    .total-row td { font-weight: 700; border-top: 2px solid var(--border); color: var(--text); }
+/* nav */
+.nav-label{
+  font-family:var(--fm);
+  font-size:9px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  padding:0 24px 8px;
+}
+.nav{
+  flex:1;
+  overflow-y:auto;
+  padding:0 12px;
+}
+.nav-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:8px 12px;
+  border-radius:5px;
+  color:var(--ink-2);
+  font-size:12px;
+  font-weight:500;
+  letter-spacing:.04em;
+  cursor:pointer;
+  transition:all .15s;
+  user-select:none;
+  text-decoration:none;
+}
+.nav-item:hover{color:var(--ink);background:var(--s2)}
+.nav-item.active{color:var(--gold);background:var(--gold-dim)}
+.nav-item .nav-dot{
+  width:5px;height:5px;
+  border-radius:50%;
+  background:var(--line-strong);
+  flex-shrink:0;
+  transition:background .15s;
+}
+.nav-item.active .nav-dot{background:var(--gold)}
+.nav-item:hover .nav-dot{background:var(--ink-2)}
 
-    /* ── Bar Visuals ──────────────────────────────────────────── */
-    .bar-wrap { display: flex; align-items: center; gap: 8px; }
-    .bar {
-      height: 14px;
-      background: var(--accent);
-      border-radius: 3px;
-      min-width: 2px;
-      opacity: .75;
-    }
-    .bar.cost { background: var(--red); }
-    .bar-lbl { font-size: .73rem; color: var(--text-muted); min-width: 38px; font-family: var(--mono); }
+/* sidebar footer */
+.sidebar-foot{
+  padding:20px 24px;
+  border-top:1px solid var(--line);
+  flex-shrink:0;
+}
+.live-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:14px;
+}
+.live-pip{
+  width:7px;height:7px;
+  border-radius:50%;
+  background:var(--ink-3);
+  flex-shrink:0;
+  transition:background .3s;
+}
+.live-pip.on{background:var(--green);box-shadow:0 0 6px rgba(77,184,153,.5)}
+.live-pip.blink{background:var(--gold);animation:pipblink .5s infinite}
+@keyframes pipblink{0%,100%{opacity:1}50%{opacity:.3}}
+.live-txt{font-family:var(--fm);font-size:10px;color:var(--ink-3)}
 
-    /* ── Project Badge ────────────────────────────────────────── */
-    .badge {
-      display: inline-block;
-      background: var(--bg-hover);
-      color: var(--blue);
-      padding: 2px 7px;
-      border-radius: 4px;
-      font-size: .68rem;
-      font-weight: 500;
-    }
-    .session-id { font-size: .65rem; color: var(--text-dim); font-family: var(--mono); }
+.foot-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.foot-stat .f-label{font-family:var(--fm);font-size:9px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:2px}
+.foot-stat .f-val{font-family:var(--fm);font-size:14px;font-weight:500;color:var(--ink)}
+.foot-stat .f-val.gold{color:var(--gold)}
 
-    /* ── Tool Section ─────────────────────────────────────────── */
-    .tool-row { cursor: pointer; }
-    .tool-row:hover .tool-name { color: var(--purple); }
-    .tool-row:hover .bar { opacity: 1; }
-    .tool-name {
-      font-weight: 600;
-      color: var(--purple);
-      font-size: .8rem;
-      min-width: 90px;
-    }
-    .tool-controls {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
-    }
-    .tool-controls label { font-size: .75rem; color: var(--text-muted); }
-    .tool-controls select {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      color: var(--text);
-      font-size: .75rem;
-      padding: 5px 8px;
-      font-family: var(--sans);
-      outline: none;
-    }
+/* ─────────────────────────────────────────────────────────────
+   MAIN CONTENT
+───────────────────────────────────────────────────────────── */
+.main{
+  flex:1;
+  height:100vh;
+  overflow-y:auto;
+  overflow-x:hidden;
+}
 
-    /* ── Tool Detail Panel ────────────────────────────────────── */
-    .detail-panel {
-      background: var(--bg-card);
-      border: 1px solid var(--border-sub);
-      border-radius: var(--radius);
-      margin-top: 12px;
-      padding: 16px;
-      max-height: 440px;
-      overflow-y: auto;
-    }
-    .detail-panel-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    .detail-panel-title {
-      font-size: .85rem;
-      font-weight: 600;
-      color: var(--purple);
-    }
-    .detail-panel-actions { display: flex; gap: 6px; }
-    .detail-row {
-      padding: 7px 0;
-      border-bottom: 1px solid var(--border-sub);
-      font-size: .75rem;
-    }
-    .detail-row:last-child { border-bottom: none; }
-    .detail-cmd  { color: var(--green); word-break: break-all; font-family: var(--mono); }
-    .detail-desc { color: var(--text-muted); }
-    .detail-path { color: var(--blue); word-break: break-all; font-family: var(--mono); }
-    .detail-meta { color: var(--text-dim); font-size: .65rem; margin-top: 3px; }
+/* page top bar */
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:10;
+  background:rgba(9,9,12,.85);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);
+  padding:0 40px;
+  height:52px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.topbar-title{
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--ink-2);
+}
+.topbar-actions{display:flex;gap:8px;align-items:center}
+.tbtn{
+  font-family:var(--fm);
+  font-size:11px;
+  color:var(--ink-3);
+  border:1px solid var(--line);
+  border-radius:5px;
+  padding:5px 12px;
+  transition:all .15s;
+}
+.tbtn:hover{color:var(--ink);border-color:var(--line-strong)}
+.tbtn.primary{color:var(--gold);border-color:var(--gold-dim)}
+.tbtn.primary:hover{background:var(--gold-dim)}
 
-    /* ── History ──────────────────────────────────────────────── */
-    .history-controls {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 12px;
-      flex-wrap: wrap;
-    }
-    .tabs { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; }
-    .tab {
-      padding: 5px 12px;
-      background: var(--bg-card);
-      border: 1px solid var(--border-sub);
-      border-radius: 20px;
-      color: var(--text-muted);
-      cursor: pointer;
-      font-size: .72rem;
-      font-family: var(--sans);
-      transition: all .15s;
-    }
-    .tab:hover { background: var(--bg-hover); color: var(--text); }
-    .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-    #history-search {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      color: var(--text);
-      font-family: var(--sans);
-      font-size: .78rem;
-      padding: 6px 10px;
-      width: 200px;
-      outline: none;
-    }
-    #history-search:focus { border-color: var(--accent); }
-    .prompt-text {
-      max-width: 460px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      color: var(--text);
-    }
-    .history-row { cursor: pointer; }
-    .history-row:hover .prompt-text { color: var(--accent); }
-    .thread-indicator {
-      font-size: .6rem;
-      color: var(--text-dim);
-      margin-left: 4px;
-    }
-    .history-row.expanded .thread-indicator { color: var(--accent); }
+/* content area */
+.content{padding:0 40px 64px}
 
-    /* ── Session Thread ───────────────────────────────────────── */
-    .session-thread-row td {
-      padding: 0 !important;
-      background: var(--bg) !important;
-      border-bottom: 1px solid var(--border) !important;
-    }
-    .session-thread {
-      padding: 12px 16px 16px;
-    }
-    .thread-msg {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-    .thread-msg:last-child { margin-bottom: 0; }
-    .thread-avatar {
-      flex-shrink: 0;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: .6rem;
-      font-weight: 700;
-      margin-top: 2px;
-    }
-    .thread-avatar.user      { background: var(--blue); color: var(--bg); }
-    .thread-avatar.assistant { background: var(--accent); color: #fff; }
-    .thread-content { flex: 1; min-width: 0; }
-    .thread-role {
-      font-size: .65rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .05em;
-      color: var(--text-dim);
-      margin-bottom: 3px;
-    }
-    .thread-text {
-      font-size: .78rem;
-      color: var(--text-muted);
-      white-space: pre-wrap;
-      word-break: break-word;
-      line-height: 1.55;
-      max-height: 120px;
-      overflow: hidden;
-      position: relative;
-    }
-    .thread-text.expanded { max-height: none; }
-    .thread-text::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 32px;
-      background: linear-gradient(transparent, var(--bg));
-    }
-    .thread-text.expanded::after { display: none; }
-    .thread-tools {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      margin-top: 5px;
-    }
-    .thread-tool-chip {
-      background: var(--bg-card);
-      border: 1px solid var(--border-sub);
-      border-radius: 4px;
-      padding: 2px 7px;
-      font-size: .65rem;
-      color: var(--purple);
-      font-family: var(--mono);
-    }
-    .thread-meta { font-size: .62rem; color: var(--text-dim); margin-top: 4px; }
+/* ─────────────────────────────────────────────────────────────
+   SECTION ANATOMY
+───────────────────────────────────────────────────────────── */
+.section{
+  padding:48px 0 0;
+  animation:fadeup .5s var(--ease) both;
+}
+.section:first-child{padding-top:40px}
+.section-sep{
+  height:1px;
+  background:var(--line);
+  margin:48px 0 0;
+}
+@keyframes fadeup{
+  from{opacity:0;transform:translateY(20px)}
+  to{opacity:1;transform:translateY(0)}
+}
+/* stagger delays */
+.section:nth-child(1){animation-delay:.04s}
+.section:nth-child(2){animation-delay:.1s}
+.section:nth-child(3){animation-delay:.16s}
+.section:nth-child(4){animation-delay:.22s}
+.section:nth-child(5){animation-delay:.28s}
+.section:nth-child(6){animation-delay:.34s}
+.section:nth-child(7){animation-delay:.4s}
 
-    /* ── Cost table specific ──────────────────────────────────── */
-    .hit-green { color: var(--green); }
-    .hit-amber { color: var(--amber); }
-    .hit-red   { color: var(--red); }
-    .cost-note {
-      font-size: .68rem;
-      color: var(--text-dim);
-      margin-top: 10px;
-      padding-top: 8px;
-      border-top: 1px solid var(--border-sub);
-    }
+.section-eyebrow{
+  font-family:var(--fm);
+  font-size:10px;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  color:var(--gold);
+  margin-bottom:6px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.section-eyebrow::after{
+  content:'';
+  flex:1;
+  max-width:48px;
+  height:1px;
+  background:var(--gold);
+  opacity:.35;
+}
+.section-heading{
+  font-size:22px;
+  font-weight:700;
+  color:var(--ink);
+  margin-bottom:24px;
+  letter-spacing:-.01em;
+}
 
-    /* ── Loading / Empty ──────────────────────────────────────── */
-    .loading { color: var(--text-dim); font-size: .8rem; font-style: italic; padding: 8px 0; }
-    .empty   { color: var(--text-dim); font-size: .8rem; padding: 16px 0; }
+/* tip */
+.tip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:14px;height:14px;
+  border-radius:50%;
+  border:1px solid var(--line-mid);
+  color:var(--ink-3);
+  font-size:8px;
+  font-weight:700;
+  font-family:var(--fm);
+  cursor:help;
+  vertical-align:middle;
+  position:relative;
+  transition:all .15s;
+}
+.tip:hover{border-color:var(--gold);color:var(--gold)}
 
-    /* ── Scrollbar ────────────────────────────────────────────── */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+/* tooltip */
+#ttp{
+  position:fixed;
+  z-index:9999;
+  background:var(--s2);
+  border:1px solid var(--line-mid);
+  border-radius:6px;
+  color:var(--ink-2);
+  font-family:var(--fm);
+  font-size:11px;
+  line-height:1.55;
+  max-width:280px;
+  padding:10px 14px;
+  pointer-events:none;
+  box-shadow:0 16px 40px rgba(0,0,0,.5);
+  display:none;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   EXPLAINER
+───────────────────────────────────────────────────────────── */
+.explainer{
+  background:var(--s1);
+  border:1px solid var(--line);
+  border-left:2px solid var(--gold);
+  border-radius:8px;
+  overflow:hidden;
+  margin-bottom:0;
+}
+.exp-toggle{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 18px;
+  color:var(--ink-2);
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:.04em;
+  text-align:left;
+  transition:color .15s;
+}
+.exp-toggle:hover{color:var(--ink)}
+.exp-toggle .chev{font-size:10px;transition:transform .2s;color:var(--ink-3)}
+.exp-toggle.open .chev{transform:rotate(180deg)}
+.exp-body{display:none;padding:0 18px 18px}
+.exp-body.open{display:block}
+.exp-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:10px;
+  margin-top:12px;
+}
+.exp-item{
+  background:var(--s2);
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:12px 14px;
+}
+.exp-src{font-family:var(--fm);font-size:10px;color:var(--gold);margin-bottom:4px}
+.exp-desc{font-size:11px;color:var(--ink-2);line-height:1.5}
+.exp-feeds{margin-top:6px;display:flex;flex-wrap:wrap;gap:3px}
+.exp-feeds span{
+  font-family:var(--fm);
+  font-size:9px;
+  background:var(--s3);
+  border-radius:3px;
+  padding:1px 6px;
+  color:var(--violet);
+}
+.exp-note{
+  font-size:11px;
+  color:var(--ink-3);
+  margin-top:14px;
+  padding-top:12px;
+  border-top:1px solid var(--line);
+  line-height:1.6;
+}
+.exp-note code{font-family:var(--fm);color:var(--ink-2)}
+
+/* ─────────────────────────────────────────────────────────────
+   INSIGHT CARDS
+───────────────────────────────────────────────────────────── */
+.insights-list{display:flex;flex-direction:column;gap:1px}
+.insight-item{
+  display:grid;
+  grid-template-columns:28px 1fr auto;
+  align-items:start;
+  gap:14px;
+  padding:16px 0;
+  border-bottom:1px solid var(--line);
+}
+.insight-item:last-child{border-bottom:none}
+.insight-icon{
+  width:28px;height:28px;
+  display:grid;
+  place-items:center;
+  font-size:14px;
+  flex-shrink:0;
+  margin-top:1px;
+}
+.insight-body{}
+.insight-title{
+  font-size:13px;
+  font-weight:600;
+  color:var(--ink);
+  margin-bottom:4px;
+}
+.insight-desc{font-size:12px;color:var(--ink-2);line-height:1.55}
+.impact-badge{
+  font-family:var(--fm);
+  font-size:9px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  padding:3px 8px;
+  border-radius:3px;
+  border:1px solid;
+  white-space:nowrap;
+  margin-top:2px;
+  align-self:start;
+}
+.impact-badge.high{color:var(--red);border-color:rgba(217,96,112,.25);background:rgba(217,96,112,.06)}
+.impact-badge.medium{color:var(--gold);border-color:rgba(201,168,76,.25);background:rgba(201,168,76,.06)}
+.impact-badge.positive{color:var(--green);border-color:rgba(77,184,153,.25);background:rgba(77,184,153,.06)}
+.impact-badge.info,.impact-badge.low{color:var(--blue);border-color:rgba(96,144,216,.25);background:rgba(96,144,216,.06)}
+
+/* ─────────────────────────────────────────────────────────────
+   SUMMARY PANELS
+───────────────────────────────────────────────────────────── */
+.sum-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+}
+.sum-panel{
+  background:var(--s1);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:24px;
+  position:relative;
+  overflow:hidden;
+}
+.sum-panel::before{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;
+  height:2px;
+  background:var(--line-mid);
+}
+.sum-panel.today::before{background:var(--gold)}
+.sum-panel.today{border-color:rgba(201,168,76,.2)}
+
+.panel-tag{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-family:var(--fm);
+  font-size:9px;
+  letter-spacing:.15em;
+  text-transform:uppercase;
+  margin-bottom:20px;
+}
+.panel-tag .dot{width:5px;height:5px;border-radius:50%;background:var(--gold)}
+.panel-tag.today-tag{color:var(--gold)}
+.panel-tag.all-tag{color:var(--ink-3)}
+.panel-tag.all-tag .dot{background:var(--ink-3)}
+
+.mrow{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:1px;
+  background:var(--line);
+  border-radius:6px;
+  overflow:hidden;
+}
+.met{
+  background:var(--s2);
+  padding:14px 12px;
+}
+.met-lbl{
+  font-family:var(--fm);
+  font-size:9px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  margin-bottom:6px;
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+.met-val{
+  font-family:var(--fm);
+  font-size:20px;
+  font-weight:500;
+  color:var(--ink);
+  letter-spacing:-.02em;
+}
+.met-val.gold{color:var(--gold)}
+.met-val.green{color:var(--green)}
+.met-val.red{color:var(--red)}
+.met-val.blue{color:var(--blue)}
+.met-sub{font-family:var(--fm);font-size:9px;color:var(--ink-3);margin-top:3px}
+.met-div{
+  height:1px;background:var(--line);
+  margin:1px 0;
+}
+
+.top-models{
+  margin-top:14px;
+  padding-top:14px;
+  border-top:1px solid var(--line);
+}
+.model-label-row{
+  font-family:var(--fm);
+  font-size:9px;
+  letter-spacing:.15em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  margin-bottom:8px;
+}
+.model-entry{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:4px 0;
+  font-family:var(--fm);
+  font-size:11px;
+}
+.model-rank{color:var(--ink-3);width:12px;text-align:right;flex-shrink:0}
+.model-name{color:var(--violet);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.model-cnt{color:var(--ink-3)}
+
+/* ─────────────────────────────────────────────────────────────
+   CACHE CARDS
+───────────────────────────────────────────────────────────── */
+.cache-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:1px;
+  background:var(--line);
+  border-radius:10px;
+  overflow:hidden;
+}
+.cache-card{
+  background:var(--s1);
+  padding:20px;
+}
+.cc-label{
+  font-family:var(--fm);
+  font-size:9px;
+  letter-spacing:.15em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  margin-bottom:10px;
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+.cc-val{
+  font-family:var(--fm);
+  font-size:28px;
+  font-weight:500;
+  color:var(--ink);
+  letter-spacing:-.03em;
+  margin-bottom:4px;
+}
+.cc-sub{font-family:var(--fm);font-size:10px;color:var(--ink-3)}
+
+/* ─────────────────────────────────────────────────────────────
+   BAR CHART ROWS (separated)
+───────────────────────────────────────────────────────────── */
+.bar-list{display:flex;flex-direction:column}
+.bar-row{
+  display:grid;
+  grid-template-columns:160px 1fr 72px;
+  align-items:center;
+  gap:16px;
+  padding:11px 0;
+  border-bottom:1px solid var(--line);
+  cursor:pointer;
+  transition:background .12s;
+}
+.bar-row:last-child{border-bottom:none}
+.bar-row:hover .bar-label{color:var(--ink)}
+.bar-row:hover .bar-track{background:var(--s3)}
+.bar-row:hover .bar-fill{opacity:1}
+.bar-label{
+  font-family:var(--fm);
+  font-size:12px;
+  font-weight:500;
+  color:var(--ink-2);
+  transition:color .12s;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.bar-track{
+  height:3px;
+  background:var(--s3);
+  border-radius:2px;
+  overflow:hidden;
+  transition:background .12s;
+}
+.bar-fill{
+  height:100%;
+  background:var(--gold);
+  border-radius:2px;
+  opacity:.7;
+  transform-origin:left;
+  animation:barSlide .8s var(--ease) both;
+}
+@keyframes barSlide{from{transform:scaleX(0)}}
+.bar-row.cost .bar-fill{background:var(--red);opacity:.6}
+.bar-row.tool .bar-fill{background:var(--gold)}
+.bar-num{
+  font-family:var(--fm);
+  font-size:12px;
+  color:var(--ink-2);
+  text-align:right;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   TABLE (shared)
+───────────────────────────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto;margin:0 -2px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead tr{border-bottom:1px solid var(--line-mid)}
+th{
+  font-family:var(--fm);
+  font-size:9px;
+  letter-spacing:.15em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  padding:0 14px 10px;
+  text-align:left;
+  white-space:nowrap;
+  font-weight:400;
+}
+th.r{text-align:right}
+td{
+  padding:10px 14px;
+  border-bottom:1px solid var(--line);
+  color:var(--ink-2);
+  font-family:var(--fm);
+  font-size:12px;
+  vertical-align:middle;
+}
+td.r{text-align:right}
+td.bright{color:var(--ink)}
+tbody tr:hover td{background:var(--s1)}
+tbody tr:last-child td{border-bottom:none}
+.total-row td{
+  border-top:1px solid var(--line-mid);
+  border-bottom:none;
+  color:var(--ink);
+  font-weight:500;
+}
+
+/* col colors */
+.col-green{color:var(--green)!important}
+.col-red{color:var(--red)!important}
+.col-gold{color:var(--gold)!important}
+.col-blue{color:var(--blue)!important}
+
+/* hit rate cell color */
+.hr-hi{color:var(--green)!important}
+.hr-mid{color:var(--gold)!important}
+.hr-lo{color:var(--red)!important}
+
+.tbl-note{
+  font-family:var(--fm);
+  font-size:10px;
+  color:var(--ink-3);
+  margin-top:14px;
+  padding-top:12px;
+  border-top:1px solid var(--line);
+  line-height:1.6;
+}
+.tbl-note code{color:var(--ink-2)}
+
+/* ─────────────────────────────────────────────────────────────
+   BADGES / CHIPS
+───────────────────────────────────────────────────────────── */
+.badge{
+  display:inline-block;
+  background:var(--s3);
+  color:var(--blue);
+  border-radius:4px;
+  padding:2px 7px;
+  font-family:var(--fm);
+  font-size:10px;
+  font-weight:400;
+}
+.sid{font-family:var(--fm);font-size:10px;color:var(--ink-3)}
+.proj-path{font-family:var(--fm);font-size:10px;color:var(--ink-3);display:block;margin-top:2px}
+
+/* ─────────────────────────────────────────────────────────────
+   HISTORY
+───────────────────────────────────────────────────────────── */
+.hist-controls{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:20px;
+  flex-wrap:wrap;
+}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+.tab{
+  font-family:var(--fm);
+  font-size:10px;
+  letter-spacing:.08em;
+  color:var(--ink-3);
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:4px 12px;
+  transition:all .15s;
+}
+.tab:hover{color:var(--ink);border-color:var(--line-strong)}
+.tab.active{color:var(--gold);border-color:rgba(201,168,76,.35);background:var(--gold-dim)}
+#hist-search{
+  background:var(--s1);
+  border:1px solid var(--line);
+  border-radius:5px;
+  color:var(--ink);
+  font-family:var(--fm);
+  font-size:11px;
+  padding:6px 10px;
+  width:180px;
+  outline:none;
+}
+#hist-search:focus{border-color:var(--gold)}
+#hist-search::placeholder{color:var(--ink-3)}
+.prompt-cell{
+  max-width:420px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:var(--ink-2);
+  transition:color .12s;
+}
+.history-row{cursor:pointer}
+.history-row:hover .prompt-cell{color:var(--gold)}
+.thread-mark{color:var(--ink-3);font-size:9px;margin-left:5px;transition:color .12s}
+.history-row.expanded .thread-mark{color:var(--gold)}
+
+/* ─────────────────────────────────────────────────────────────
+   SESSION THREAD
+───────────────────────────────────────────────────────────── */
+.thread-row td{
+  background:var(--s1)!important;
+  padding:0!important;
+  border-bottom:1px solid var(--line-mid)!important;
+}
+.thread-wrap{padding:16px 20px 20px}
+.thread-msg{
+  display:flex;
+  gap:12px;
+  padding:10px 0;
+  border-bottom:1px solid var(--line);
+}
+.thread-msg:last-child{border-bottom:none}
+.t-av{
+  width:22px;height:22px;
+  border-radius:4px;
+  display:grid;
+  place-items:center;
+  font-family:var(--fm);
+  font-size:8px;
+  font-weight:700;
+  flex-shrink:0;
+  margin-top:2px;
+}
+.t-av.user{background:var(--s4);color:var(--ink-2)}
+.t-av.assistant{background:var(--gold);color:var(--bg)}
+.t-body{flex:1;min-width:0}
+.t-role{font-family:var(--fm);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:4px}
+.t-text{
+  font-family:var(--fm);
+  font-size:11px;
+  color:var(--ink-2);
+  white-space:pre-wrap;
+  word-break:break-word;
+  line-height:1.6;
+  max-height:100px;
+  overflow:hidden;
+  position:relative;
+  cursor:pointer;
+}
+.t-text.open{max-height:none}
+.t-text:not(.open)::after{
+  content:'';
+  position:absolute;
+  bottom:0;left:0;right:0;
+  height:30px;
+  background:linear-gradient(transparent,var(--s1));
+}
+.t-tools{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.t-chip{
+  font-family:var(--fm);
+  font-size:9px;
+  background:var(--s2);
+  border:1px solid var(--line);
+  border-radius:3px;
+  padding:2px 7px;
+  color:var(--violet);
+}
+.t-meta{font-family:var(--fm);font-size:9px;color:var(--ink-3);margin-top:5px}
+
+/* ─────────────────────────────────────────────────────────────
+   DETAIL PANEL (tool details)
+───────────────────────────────────────────────────────────── */
+.detail-panel{
+  background:var(--s1);
+  border:1px solid var(--line);
+  border-radius:8px;
+  margin-top:16px;
+  padding:16px;
+  max-height:380px;
+  overflow-y:auto;
+}
+.detail-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:14px;
+}
+.detail-title{font-size:12px;font-weight:600;color:var(--violet)}
+.detail-acts{display:flex;gap:6px}
+.drow{
+  padding:8px 0;
+  border-bottom:1px solid var(--line);
+  font-size:11px;
+}
+.drow:last-child{border-bottom:none}
+.d-cmd{font-family:var(--fm);color:var(--green);word-break:break-all}
+.d-desc{font-family:var(--fm);color:var(--ink-2);margin-bottom:2px}
+.d-path{font-family:var(--fm);color:var(--blue);word-break:break-all}
+.d-meta{font-family:var(--fm);font-size:10px;color:var(--ink-3);margin-top:3px}
+
+/* tool controls */
+.tool-ctrl{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:18px;
+}
+.tool-ctrl label{font-family:var(--fm);font-size:10px;color:var(--ink-3)}
+.tool-ctrl select{
+  background:var(--s2);
+  border:1px solid var(--line);
+  border-radius:5px;
+  color:var(--ink);
+  font-family:var(--fm);
+  font-size:11px;
+  padding:5px 8px;
+  outline:none;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   MISC
+───────────────────────────────────────────────────────────── */
+.loading{font-family:var(--fm);font-size:11px;color:var(--ink-3);padding:8px 0}
+.empty{font-family:var(--fm);font-size:11px;color:var(--ink-3);padding:20px 0}
+
+/* ─────────────────────────────────────────────────────────────
+   RESPONSIVE
+───────────────────────────────────────────────────────────── */
+@media(max-width:900px){
+  .sidebar{display:none}
+  .main{height:100vh}
+  .sum-grid{grid-template-columns:1fr}
+  .cache-grid{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+  .mrow{grid-template-columns:repeat(2,1fr)}
+  .bar-row{grid-template-columns:120px 1fr 56px;gap:10px}
+}
   </style>
 </head>
 <body>
-<div class="page">
 
-  <!-- ── Header ─────────────────────────────────────────────── -->
-  <header class="site-header">
-    <div class="header-brand">
-      <div class="claude-mark">CL</div>
+<!-- ─── SIDEBAR ───────────────────────────────────────────── -->
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-mark">
+      <div class="brand-icon">
+        <svg viewBox="0 0 16 16"><path d="M8 1L2 4v8l6 3 6-3V4L8 1zm0 2.2l3.5 1.75v3.5L8 10.2 4.5 8.45v-3.5L8 3.2z"/></svg>
+      </div>
       <div>
-        <div class="header-title">Claude Lens</div>
-        <div class="header-sub">Usage Analytics Dashboard</div>
+        <div class="brand-name">Claude Lens</div>
+        <div class="brand-ver">v2.0</div>
       </div>
     </div>
-    <div class="header-right">
-      <div class="live-indicator">
-        <div class="live-dot" id="live-dot"></div>
-        <span id="live-text">Connecting…</span>
-      </div>
-      <div class="search-wrap">
-        <span class="search-icon">⌕</span>
-        <input type="text" id="global-search" placeholder="Search history, projects…" autocomplete="off">
-      </div>
-      <button class="btn" onclick="load()">↺ Refresh</button>
-    </div>
-  </header>
 
-  <!-- ── How This Works ─────────────────────────────────────── -->
-  <div class="explainer" id="explainer">
-    <button class="explainer-toggle" id="explainer-toggle" onclick="toggleExplainer()">
-      <span>How Claude Lens works — data flow &amp; connections</span>
-      <span class="chevron">▾</span>
-    </button>
-    <div class="explainer-body" id="explainer-body">
-      <div style="font-size:.77rem;color:var(--text-muted);margin-bottom:4px">
-        Claude Code writes structured data to <code>~/.claude/</code> as you work. Claude Lens reads those files locally and aggregates them into the sections below. Nothing leaves your machine.
+    <div class="search-box">
+      <span class="ico">⌕</span>
+      <input type="text" id="global-search" placeholder="Search history…" autocomplete="off">
+    </div>
+  </div>
+
+  <div class="nav-label">Sections</div>
+
+  <nav class="nav" id="sidebar-nav">
+    <a class="nav-item active" href="#s-insights" onclick="navClick(this)"><span class="nav-dot"></span>Insights</a>
+    <a class="nav-item" href="#s-summary"  onclick="navClick(this)"><span class="nav-dot"></span>Summary</a>
+    <a class="nav-item" href="#s-cache"    onclick="navClick(this)"><span class="nav-dot"></span>Cache</a>
+    <a class="nav-item" href="#s-daily"    onclick="navClick(this)"><span class="nav-dot"></span>Daily Cost</a>
+    <a class="nav-item" href="#s-tools"    onclick="navClick(this)"><span class="nav-dot"></span>Tool Calls</a>
+    <a class="nav-item" href="#s-projects" onclick="navClick(this)"><span class="nav-dot"></span>Projects</a>
+    <a class="nav-item" href="#s-history"  onclick="navClick(this)"><span class="nav-dot"></span>History</a>
+  </nav>
+
+  <div class="sidebar-foot">
+    <div class="live-row">
+      <div class="live-pip" id="live-pip"></div>
+      <span class="live-txt" id="live-txt">Connecting…</span>
+    </div>
+    <div class="foot-stats">
+      <div class="foot-stat">
+        <div class="f-label">Today Cost</div>
+        <div class="f-val gold" id="foot-cost">—</div>
       </div>
-      <div class="explainer-flow">
-        <div class="flow-item">
-          <div class="flow-source">history.jsonl</div>
-          <div class="flow-desc">Every prompt you send — timestamp, project, session ID, display text.</div>
-          <div class="flow-feeds">Feeds: <span>Summary</span><span>Prompt History</span><span>Patterns</span></div>
+      <div class="foot-stat">
+        <div class="f-label">Sessions</div>
+        <div class="f-val" id="foot-sess">—</div>
+      </div>
+      <div class="foot-stat">
+        <div class="f-label">Cache Hit</div>
+        <div class="f-val" id="foot-hit">—</div>
+      </div>
+      <div class="foot-stat">
+        <div class="f-label">All-Time</div>
+        <div class="f-val gold" id="foot-total">—</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ─── MAIN ───────────────────────────────────────────────── -->
+<main class="main" id="main">
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-section">Overview</div>
+    <div class="topbar-actions">
+      <button class="tbtn primary" onclick="toggleExplainer()">How it works</button>
+      <button class="tbtn" onclick="load()">↺ Refresh</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ── HOW IT WORKS ─────────────────────────────────────── -->
+    <div class="explainer" id="explainer" style="margin-top:32px;margin-bottom:0">
+      <button class="exp-toggle" id="exp-btn" onclick="toggleExplainer()">
+        <span>Data flow — how ~/.claude/ connects to this dashboard</span>
+        <span class="chev">▾</span>
+      </button>
+      <div class="exp-body" id="exp-body">
+        <div style="font-size:11px;color:var(--ink-2);line-height:1.6">
+          Claude Code writes structured logs to <code style="font-family:var(--fm)">~/.claude/</code> as you work. Claude Lens reads those files locally — nothing leaves your machine.
         </div>
-        <div class="flow-item">
-          <div class="flow-source">projects/*/[id].jsonl</div>
-          <div class="flow-desc">Full conversation logs — assistant messages with token usage, tool calls, and model info per turn.</div>
-          <div class="flow-feeds">Feeds: <span>Daily Costs</span><span>Tool Calls</span><span>Session Threads</span><span>Patterns</span></div>
+        <div class="exp-grid">
+          <div class="exp-item">
+            <div class="exp-src">history.jsonl</div>
+            <div class="exp-desc">Every prompt you send — timestamp, project, session ID.</div>
+            <div class="exp-feeds"><span>Summary</span><span>History</span><span>Insights</span></div>
+          </div>
+          <div class="exp-item">
+            <div class="exp-src">projects/*/[id].jsonl</div>
+            <div class="exp-desc">Full conversation logs with token usage, tool calls, model.</div>
+            <div class="exp-feeds"><span>Daily Costs</span><span>Tool Calls</span><span>Threads</span></div>
+          </div>
+          <div class="exp-item">
+            <div class="exp-src">stats-cache.json</div>
+            <div class="exp-desc">Claude's own aggregated counters, updated per session.</div>
+            <div class="exp-feeds"><span>Summary (supp.)</span></div>
+          </div>
+          <div class="exp-item">
+            <div class="exp-src">sessions/*.json</div>
+            <div class="exp-desc">Session metadata — IDs and project associations.</div>
+            <div class="exp-feeds"><span>Session Threads</span></div>
+          </div>
         </div>
-        <div class="flow-item">
-          <div class="flow-source">stats-cache.json</div>
-          <div class="flow-desc">Claude Code's own aggregated counters — updated automatically after each session.</div>
-          <div class="flow-feeds">Feeds: <span>Summary (supplementary)</span></div>
-        </div>
-        <div class="flow-item">
-          <div class="flow-source">sessions/*.json</div>
-          <div class="flow-desc">Session metadata — IDs, project links, creation timestamps.</div>
-          <div class="flow-feeds">Feeds: <span>Session Thread View</span></div>
+        <div class="exp-note">
+          <strong>Connection:</strong> <em>Summary</em> totals = aggregate of all project JSONL files.
+          <em>Cache Hit Rate</em> = <code>cacheRead ÷ (input + cacheRead + cacheCreate)</code>.
+          <em>Insights</em> run client-side over the same data. <em>Session Threads</em> filter that JSONL by session ID.
         </div>
       </div>
-      <div class="explainer-note">
-        <strong>How sections connect:</strong>
-        The <em>Summary</em> totals come from aggregating all project JSONL files by date — the same data that drives <em>Daily Costs</em>.
-        <em>Cache Hit Rate</em> is computed as <code>cacheRead ÷ (input + cacheRead + cacheCreate)</code>.
-        <em>Pattern Insights</em> analyze trends across all of this data to surface personalized recommendations.
-        <em>Session Threads</em> read the same JSONL files as Daily Costs but filter by session ID to show conversation turns.
+    </div>
+
+    <!-- ── INSIGHTS ─────────────────────────────────────────── -->
+    <div class="section" id="s-insights">
+      <div class="section-sep" style="margin-top:32px;margin-bottom:36px"></div>
+      <div class="section-eyebrow">Pattern Insights</div>
+      <div class="section-heading">
+        What your usage data reveals
+        <span class="tip" data-tip="Computed client-side from your actual usage. Analyzes cache trends week-over-week, tool ratios, cost trajectory, and peak activity hours.">?</span>
+      </div>
+      <div id="insights-list" class="insights-list">
+        <div class="loading">Analyzing patterns…</div>
       </div>
     </div>
-  </div>
 
-  <!-- ── Pattern Insights ────────────────────────────────────── -->
-  <div class="section">
-    <div class="section-header">
-      <h2>
-        Pattern Insights
-        <span class="tip" data-tooltip="Automatically detected patterns in your Claude Code usage. Analyzes cache trends, tool habits, cost trajectories, and peak activity times to surface personalized recommendations.">?</span>
-      </h2>
+    <!-- ── SUMMARY ──────────────────────────────────────────── -->
+    <div class="section" id="s-summary">
+      <div class="section-sep"></div>
+      <div class="section-eyebrow" style="margin-top:48px">Overview</div>
+      <div class="section-heading">
+        Today vs all time
+        <span class="tip" data-tip="Today = current calendar day (local timezone). Both panels come from the same project JSONL files — Today just filters by today's date.">?</span>
+      </div>
+      <div class="sum-grid" id="sum-grid">
+        <div class="loading">Loading…</div>
+      </div>
     </div>
-    <div class="insights-grid" id="insights-grid">
-      <div class="loading">Analyzing patterns…</div>
-    </div>
-  </div>
 
-  <!-- ── Summary ────────────────────────────────────────────── -->
-  <div class="section">
-    <div class="section-header">
-      <h2>
-        Summary
-        <span class="tip" data-tooltip="Today's activity vs all-time totals. 'Today' is the current calendar day in your local timezone. Both panels are computed from the same project JSONL files — Today just filters to today's date.">?</span>
-      </h2>
+    <!-- ── CACHE ────────────────────────────────────────────── -->
+    <div class="section" id="s-cache">
+      <div class="section-sep"></div>
+      <div class="section-eyebrow" style="margin-top:48px">Cache Performance</div>
+      <div class="section-heading">
+        Prompt cache efficiency
+        <span class="tip" data-tip="Anthropic's prompt cache stores context server-side. Cache reads cost ~90% less than fresh input. Cache writes cost 25% more upfront but pay back on every future read.">?</span>
+      </div>
+      <div class="cache-grid" id="cache-grid">
+        <div style="padding:20px" class="loading">Loading…</div>
+      </div>
     </div>
-    <div id="summary-grid" class="summary-grid">
-      <div class="loading">Loading…</div>
-    </div>
-  </div>
 
-  <!-- ── Cache Performance ───────────────────────────────────── -->
-  <div class="section">
-    <div class="section-header">
-      <h2>
-        Cache Performance
-        <span class="tip" data-tooltip="Anthropic's prompt cache stores your input context server-side. Cache reads cost ~90% less than fresh input. These 4 cards show how effectively your usage benefits from caching.">?</span>
-      </h2>
+    <!-- ── DAILY ────────────────────────────────────────────── -->
+    <div class="section" id="s-daily">
+      <div class="section-sep"></div>
+      <div style="margin-top:48px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px">
+        <div>
+          <div class="section-eyebrow" style="margin-bottom:6px">Daily Cost &amp; Cache</div>
+          <div class="section-heading" style="margin-bottom:0">
+            Token usage by day
+            <span class="tip" data-tip="Cost is estimated from your configured rates. 'Saved' = cost without cache − actual cost. The bar shows each day's cost relative to your highest day.">?</span>
+          </div>
+        </div>
+        <button class="tbtn" style="margin-top:4px;flex-shrink:0" onclick="exportDailyCostsCSV()">↓ CSV</button>
+      </div>
+      <div id="daily-wrap"><div class="loading">Loading…</div></div>
     </div>
-    <div class="cards" id="cache-cards">
-      <div class="card"><div class="label">Loading…</div></div>
-    </div>
-  </div>
 
-  <!-- ── Daily Costs ─────────────────────────────────────────── -->
-  <div class="section">
-    <div class="section-header">
-      <h2>
-        Daily Cost &amp; Cache
-        <span class="tip" data-tooltip="Token usage and costs broken down by calendar day. Cost is estimated from your configured rates. 'Saved' shows money avoided by using cache reads instead of fresh input tokens. The bar visualizes each day's cost relative to your most expensive day.">?</span>
-      </h2>
-      <button class="btn btn-sm" onclick="exportDailyCostsCSV()">↓ CSV</button>
+    <!-- ── TOOLS ────────────────────────────────────────────── -->
+    <div class="section" id="s-tools">
+      <div class="section-sep"></div>
+      <div style="margin-top:48px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px">
+        <div>
+          <div class="section-eyebrow" style="margin-bottom:6px">Tool Calls</div>
+          <div class="section-heading" style="margin-bottom:0">
+            What Claude uses most
+            <span class="tip" data-tip="Every tool invocation across all projects. Click a row to inspect the 200 most recent individual calls. Use the project filter to scope to one codebase.">?</span>
+          </div>
+        </div>
+        <button class="tbtn" style="margin-top:4px;flex-shrink:0" onclick="exportToolsCSV()">↓ CSV</button>
+      </div>
+      <div id="tools-wrap"><div class="loading">Loading…</div></div>
     </div>
-    <div id="daily-costs"><div class="loading">Loading…</div></div>
-  </div>
 
-  <!-- ── Tool Calls ──────────────────────────────────────────── -->
-  <div class="section">
-    <div class="section-header">
-      <h2>
-        Tool Calls
-        <span class="tip" data-tooltip="Every tool Claude invoked across all projects, sorted by frequency. Click a row to inspect the 200 most recent individual calls for that tool. Use the project filter to narrow to a specific codebase.">?</span>
-      </h2>
-      <button class="btn btn-sm" onclick="exportToolsCSV()">↓ CSV</button>
-    </div>
-    <div id="tool-calls"><div class="loading">Loading…</div></div>
-  </div>
-
-  <!-- ── Project Activity ────────────────────────────────────── -->
-  <div class="section">
-    <div class="section-header">
-      <h2>
-        Project Activity
-        <span class="tip" data-tooltip="Claude Code usage per project directory. 'Project' is the folder path Claude was run from. Message count comes from history.jsonl; Sessions counts distinct session IDs within each project.">?</span>
-      </h2>
-      <button class="btn btn-sm" onclick="exportProjectsCSV()">↓ CSV</button>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Project <span class="tip" data-tooltip="The filesystem path of the project directory Claude Code was run from.">?</span></th>
-            <th>Messages <span class="tip" data-tooltip="Count of user prompts sent within this project.">?</span></th>
-            <th>Sessions <span class="tip" data-tooltip="Count of distinct session IDs. Each Claude Code startup creates a new session.">?</span></th>
-            <th>Last Active <span class="tip" data-tooltip="Timestamp of the most recent prompt in this project.">?</span></th>
-          </tr>
-        </thead>
-        <tbody id="projects-body">
-          <tr><td colspan="4" class="loading">Loading…</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- ── Prompt History ──────────────────────────────────────── -->
-  <div class="section">
-    <div class="section-header">
-      <h2>
-        Prompt History
-        <span class="tip" data-tooltip="Your recent Claude Code prompts from history.jsonl. Click any row to expand the full conversation thread for that session. Use tabs to filter by project or the search box to find specific prompts.">?</span>
-      </h2>
-    </div>
-    <div class="history-controls">
-      <div class="tabs" id="history-tabs"></div>
-      <input type="text" id="history-search" placeholder="Filter prompts…" autocomplete="off">
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Time</th>
+    <!-- ── PROJECTS ─────────────────────────────────────────── -->
+    <div class="section" id="s-projects">
+      <div class="section-sep"></div>
+      <div style="margin-top:48px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px">
+        <div>
+          <div class="section-eyebrow" style="margin-bottom:6px">Project Activity</div>
+          <div class="section-heading" style="margin-bottom:0">
+            Usage by project
+            <span class="tip" data-tip="'Project' = the folder Claude Code was run from. Messages from history.jsonl; Sessions = distinct session IDs per project.">?</span>
+          </div>
+        </div>
+        <button class="tbtn" style="margin-top:4px;flex-shrink:0" onclick="exportProjectsCSV()">↓ CSV</button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
             <th>Project</th>
-            <th>Prompt <span class="tip" data-tooltip="Click any row to expand the full session thread — all user and assistant turns for that session.">?</span></th>
-            <th>Session</th>
-          </tr>
-        </thead>
-        <tbody id="history-body">
-          <tr><td colspan="4" class="loading">Loading…</td></tr>
-        </tbody>
-      </table>
+            <th class="r">Messages <span class="tip" data-tip="User prompts sent in this project.">?</span></th>
+            <th class="r">Sessions <span class="tip" data-tip="Distinct Claude Code sessions started in this project.">?</span></th>
+            <th class="r">Last Active <span class="tip" data-tip="Timestamp of most recent prompt.">?</span></th>
+          </tr></thead>
+          <tbody id="proj-body"><tr><td colspan="4" class="loading">Loading…</td></tr></tbody>
+        </table>
+      </div>
     </div>
-  </div>
 
-</div><!-- /page -->
+    <!-- ── HISTORY ──────────────────────────────────────────── -->
+    <div class="section" id="s-history">
+      <div class="section-sep"></div>
+      <div style="margin-top:48px">
+        <div class="section-eyebrow" style="margin-bottom:6px">Prompt History</div>
+        <div class="section-heading">
+          Recent Claude Code prompts
+          <span class="tip" data-tip="From history.jsonl. Click any row to expand the full session conversation thread.">?</span>
+        </div>
+      </div>
+      <div class="hist-controls">
+        <div class="tabs" id="hist-tabs"></div>
+        <input type="text" id="hist-search" placeholder="Filter…" autocomplete="off">
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>Time</th><th>Project</th>
+            <th>Prompt <span class="tip" data-tip="Click to expand the full session thread for this conversation.">?</span></th>
+            <th>Session</th>
+          </tr></thead>
+          <tbody id="hist-body"><tr><td colspan="4" class="loading">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
 
-<!-- Tooltip popup (singleton) -->
-<div id="tooltip-popup"></div>
+    <div style="height:1px"></div>
+  </div><!-- /content -->
+</main><!-- /main -->
+
+<!-- Tooltip -->
+<div id="ttp"></div>
 
 <script>
-// ═══════════════════════════════════════════════════════════
-// Utils
-// ═══════════════════════════════════════════════════════════
-const fmt  = (n) => n != null ? n.toLocaleString() : '—';
-const fmtD = (ts) => {
+/* ═══════════════════════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════════════════════ */
+const fmt   = n => n != null ? n.toLocaleString() : '—';
+const fmtDT = ts => {
   if (!ts) return '—';
-  return new Date(ts).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  return new Date(ts).toLocaleString('en-AU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hour12:false});
 };
-const fmtDT = (ts) => {
+const fmtD = ts => {
   if (!ts) return '—';
-  return new Date(ts).toLocaleString('en-AU', {
-    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false,
-  });
+  return new Date(ts).toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'});
 };
-const shortProj = (p) => {
+const shortProj = p => {
   if (!p) return '—';
   return p.split('/').filter(Boolean).slice(-1)[0] || p;
 };
-const esc = (str) => {
+const esc = str => {
   const d = document.createElement('div');
   d.textContent = str || '';
   return d.innerHTML;
 };
-const hitClass = (r) => r > 80 ? 'hit-green' : r > 50 ? 'hit-amber' : 'hit-red';
+const hrClass = r => r > 80 ? 'hr-hi' : r > 50 ? 'hr-mid' : 'hr-lo';
 
-// ═══════════════════════════════════════════════════════════
-// App State
-// ═══════════════════════════════════════════════════════════
-let appData = { history: [], toolData: {}, projects: [], costData: {} };
-let activeTab = 'all';
-let historyFilter = '';
-let expandedSession = null;
+/* ═══════════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════════ */
+let appData = { history:[], toolData:{}, projects:[], costData:{} };
+let activeTab = 'all', histFilter = '', expandedSid = null;
 
-// ═══════════════════════════════════════════════════════════
-// Tooltip System
-// ═══════════════════════════════════════════════════════════
-const tooltipEl = document.getElementById('tooltip-popup');
-
-document.addEventListener('mouseover', (e) => {
-  const t = e.target.closest('[data-tooltip]');
+/* ═══════════════════════════════════════════════════════════
+   TOOLTIP
+═══════════════════════════════════════════════════════════ */
+const ttp = document.getElementById('ttp');
+document.addEventListener('mouseover', e => {
+  const t = e.target.closest('[data-tip]');
   if (!t) return;
-  tooltipEl.textContent = t.dataset.tooltip;
-  tooltipEl.style.display = 'block';
+  ttp.textContent = t.dataset.tip;
+  ttp.style.display = 'block';
   const r = t.getBoundingClientRect();
-  const left = Math.min(r.left, window.innerWidth - tooltipEl.offsetWidth - 12);
-  tooltipEl.style.left = Math.max(8, left) + 'px';
-  tooltipEl.style.top  = (r.bottom + 8 + window.scrollY) + 'px';
+  const left = Math.min(r.left, innerWidth - ttp.offsetWidth - 12);
+  ttp.style.left = Math.max(8,left) + 'px';
+  ttp.style.top  = (r.bottom + 8 + scrollY) + 'px';
 });
-document.addEventListener('mouseout', (e) => {
-  if (e.target.closest('[data-tooltip]')) tooltipEl.style.display = 'none';
+document.addEventListener('mouseout', e => {
+  if (e.target.closest('[data-tip]')) ttp.style.display = 'none';
 });
-document.addEventListener('scroll', () => { tooltipEl.style.display = 'none'; }, true);
+document.addEventListener('scroll', () => ttp.style.display='none', true);
 
-// ═══════════════════════════════════════════════════════════
-// Explainer
-// ═══════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
+   EXPLAINER
+═══════════════════════════════════════════════════════════ */
 function toggleExplainer() {
-  const body = document.getElementById('explainer-body');
-  const btn  = document.getElementById('explainer-toggle');
+  const body = document.getElementById('exp-body');
+  const btn  = document.getElementById('exp-btn');
   const open = body.classList.toggle('open');
   btn.classList.toggle('open', open);
 }
 
-// ═══════════════════════════════════════════════════════════
-// SSE — Real-time Updates
-// ═══════════════════════════════════════════════════════════
-function initSSE() {
-  const dot  = document.getElementById('live-dot');
-  const text = document.getElementById('live-text');
+/* ═══════════════════════════════════════════════════════════
+   SIDEBAR NAV
+═══════════════════════════════════════════════════════════ */
+function navClick(el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  const id = el.getAttribute('href').slice(1);
+  document.getElementById('topbar-section').textContent = el.textContent.trim();
+}
 
+// Scroll spy via IntersectionObserver
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const id = e.target.id;
+    document.querySelectorAll('.nav-item').forEach(n => {
+      const match = n.getAttribute('href') === '#' + id;
+      n.classList.toggle('active', match);
+      if (match) document.getElementById('topbar-section').textContent = n.textContent.trim();
+    });
+  });
+}, { root: document.getElementById('main'), threshold: 0.25 });
+['s-insights','s-summary','s-cache','s-daily','s-tools','s-projects','s-history']
+  .forEach(id => { const el = document.getElementById(id); if (el) io.observe(el); });
+
+/* ═══════════════════════════════════════════════════════════
+   SSE
+═══════════════════════════════════════════════════════════ */
+function initSSE() {
+  const pip = document.getElementById('live-pip');
+  const txt = document.getElementById('live-txt');
   const connect = () => {
     const es = new EventSource('/api/events');
-    es.onopen = () => {
-      dot.className  = 'live-dot connected';
-      text.textContent = 'Live';
-    };
-    es.onmessage = (e) => {
-      if (e.data === 'refresh') {
-        dot.className  = 'live-dot refreshing';
-        text.textContent = 'Refreshing…';
-        load().then(() => {
-          dot.className  = 'live-dot connected';
-          text.textContent = 'Live';
-        });
-      }
+    es.onopen = () => { pip.className='live-pip on'; txt.textContent='Live'; };
+    es.onmessage = e => {
+      if (e.data !== 'refresh') return;
+      pip.className='live-pip blink'; txt.textContent='Refreshing…';
+      load().then(() => { pip.className='live-pip on'; txt.textContent='Live'; });
     };
     es.onerror = () => {
-      dot.className  = 'live-dot';
-      text.textContent = 'Disconnected';
-      es.close();
-      setTimeout(connect, 5000);
+      pip.className='live-pip'; txt.textContent='Disconnected';
+      es.close(); setTimeout(connect,5000);
     };
   };
   connect();
 }
 
-// ═══════════════════════════════════════════════════════════
-// Load All Data
-// ═══════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
+   LOAD
+═══════════════════════════════════════════════════════════ */
 async function load() {
-  try {
-    const [history, toolData, projects, costData] = await Promise.all([
-      fetch('/api/history').then(r => r.json()).catch(() => []),
-      fetch('/api/tool-calls').then(r => r.json()).catch(() => ({})),
-      fetch('/api/projects').then(r => r.json()).catch(() => []),
-      fetch('/api/daily-costs').then(r => r.json()).catch(() => ({})),
-    ]);
-
-    appData = { history, toolData, projects, costData };
-
-    renderSummary();
-    renderInsights();
-    renderCacheCards();
-    renderDailyCosts();
-    renderTools();
-    renderProjects();
-    renderHistory();
-  } catch (err) {
-    console.error('Load failed:', err);
-  }
+  const [history, toolData, projects, costData] = await Promise.all([
+    fetch('/api/history').then(r=>r.json()).catch(()=>[]),
+    fetch('/api/tool-calls').then(r=>r.json()).catch(()=>({})),
+    fetch('/api/projects').then(r=>r.json()).catch(()=>[]),
+    fetch('/api/daily-costs').then(r=>r.json()).catch(()=>({})),
+  ]);
+  appData = { history, toolData, projects, costData };
+  renderInsights();
+  renderSummary();
+  renderCache();
+  renderDaily();
+  renderTools();
+  renderProjects();
+  renderHistory();
+  renderFootStats();
 }
 
-// ═══════════════════════════════════════════════════════════
-// Render: Summary
-// ═══════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
+   FOOTER STATS
+═══════════════════════════════════════════════════════════ */
+function renderFootStats() {
+  const { costData } = appData;
+  const days   = costData.days   || [];
+  const totals = costData.totals || {};
+  const today  = new Date().toISOString().slice(0,10);
+  const td = days.find(d => d.date === today);
+
+  document.getElementById('foot-cost').textContent  = td ? '$'+td.cost.toFixed(2) : '$0.00';
+  document.getElementById('foot-sess').textContent   = td ? fmt(td.sessions) : '0';
+  document.getElementById('foot-total').textContent  = '$'+(totals.cost||0).toFixed(2);
+
+  const allIn = (totals.input||0)+(totals.cacheRead||0)+(totals.cacheCreate||0);
+  const hr = allIn > 0 ? (totals.cacheRead/allIn*100) : 0;
+  const hel = document.getElementById('foot-hit');
+  hel.textContent = hr.toFixed(0)+'%';
+  hel.style.color = hr > 70 ? 'var(--green)' : hr > 40 ? 'var(--gold)' : 'var(--red)';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INSIGHTS
+═══════════════════════════════════════════════════════════ */
+function renderInsights() {
+  const ins = computeInsights(appData.history, appData.toolData, appData.costData, appData.projects);
+  const el  = document.getElementById('insights-list');
+  if (!ins.length) { el.innerHTML='<div class="empty">Not enough data yet.</div>'; return; }
+  el.innerHTML = ins.map(i => `
+    <div class="insight-item">
+      <div class="insight-icon">${i.icon}</div>
+      <div class="insight-body">
+        <div class="insight-title">${esc(i.title)}</div>
+        <div class="insight-desc">${esc(i.desc)}</div>
+      </div>
+      <div class="impact-badge ${i.impact}">${i.impact}</div>
+    </div>`).join('');
+}
+
+function computeInsights(history, toolData, costData, projects) {
+  const ins  = [];
+  const days = (costData.days||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const tot  = costData.totals||{};
+  const rates= costData.rates||{input:5/1e6,output:25/1e6};
+  const tools= toolData.tools||[];
+  const tmap = Object.fromEntries(tools.map(t=>[t.tool,t.count]));
+
+  // peak hour
+  if (history.length > 10) {
+    const hc = new Array(24).fill(0);
+    history.forEach(h=>{ if(h.timestamp) hc[new Date(h.timestamp).getHours()]++; });
+    const peak = hc.indexOf(Math.max(...hc));
+    const pct  = Math.round(hc[peak]/history.length*100);
+    ins.push({ icon:'🕐', title:`Peak activity at ${peak}:00–${peak+1}:00`,
+      desc:`${pct}% of your prompts happen here. Sessions started in this window benefit from warm cache carried over from earlier work.`, impact:'info' });
+  }
+
+  // cache trend
+  if (days.length >= 14) {
+    const hr = sub => {
+      const t = sub.reduce((a,d)=>({r:a.r+d.cacheRead,tot:a.tot+d.input+d.cacheRead+d.cacheCreate}),{r:0,tot:0});
+      return t.tot>0 ? t.r/t.tot*100 : 0;
+    };
+    const recent=hr(days.slice(-7)), prev=hr(days.slice(-14,-7)), diff=recent-prev;
+    if (Math.abs(diff)>5) ins.push({
+      icon: diff>0?'📈':'📉',
+      title: `Cache hit rate ${diff>0?'▲':'▼'} ${Math.abs(diff).toFixed(0)}% this week`,
+      desc: diff>0
+        ? `Improved ${prev.toFixed(0)}% → ${recent.toFixed(0)}%. Consistent system prompts and sustained sessions are working.`
+        : `Dropped ${prev.toFixed(0)}% → ${recent.toFixed(0)}%. Common causes: new sessions, changed prompts, more projects.`,
+      impact: diff<-10?'high':'medium'
+    });
+
+    // cost trend
+    const cost7 = sub => sub.reduce((a,d)=>a+d.cost,0);
+    const rc=cost7(days.slice(-7)), pc=cost7(days.slice(-14,-7));
+    if (pc>0) {
+      const chg=(rc-pc)/pc*100;
+      if (Math.abs(chg)>25) ins.push({
+        icon:chg>0?'💸':'💰',
+        title:`Cost ${chg>0?'▲':'▼'} ${Math.abs(chg).toFixed(0)}% this week`,
+        desc:chg>0
+          ? `$${rc.toFixed(2)} last 7 days vs $${pc.toFixed(2)} prior week. Open the Daily Cost table for the spike.`
+          : `Down to $${rc.toFixed(2)} from $${pc.toFixed(2)} — usage becoming more efficient.`,
+        impact:chg>50?'high':'medium'
+      });
+    }
+  }
+
+  // tool patterns
+  const totalT = tools.reduce((a,t)=>a+t.count,0);
+  if (totalT > 100) {
+    const bash=tmap['Bash']||0, read=tmap['Read']||0, edit=tmap['Edit']||0, agent=tmap['Agent']||0;
+    if (bash > totalT*.4) ins.push({
+      icon:'🔧',
+      title:`Bash is ${Math.round(bash/totalT*100)}% of all tool calls`,
+      desc:`${fmt(bash)} Bash calls. For file operations prefer Read/Write/Edit — they're diff-visible and skip shell parsing. Batch commands with && to reduce round-trips.`,
+      impact:'medium'
+    });
+    if (read > edit*6 && read>200) ins.push({
+      icon:'🔍',
+      title:`${Math.round(read/Math.max(edit,1))}× more reads than edits`,
+      desc:`${fmt(read)} reads vs ${fmt(edit)} edits. Ask Claude to note file contents it has already read to avoid re-reading the same files.`,
+      impact:'low'
+    });
+    if (agent>30) ins.push({
+      icon:'🤖',
+      title:`Strong subagent usage: ${fmt(agent)} Agent calls`,
+      desc:`Good parallelization pattern. Ensure each subagent prompt is fully self-contained — subagents have no memory of the parent conversation.`,
+      impact:'positive'
+    });
+  }
+
+  // overall cache health
+  const allIn=(tot.input||0)+(tot.cacheRead||0)+(tot.cacheCreate||0);
+  const ohr=allIn>0?tot.cacheRead/allIn*100:0;
+  if (allIn>50000) {
+    if (ohr<30) ins.push({
+      icon:'⚠️',title:`Low cache hit rate: ${ohr.toFixed(0)}%`,
+      desc:`Most input re-processed every turn. Fix: add a persistent system prompt, avoid clearing context mid-session, continue existing sessions instead of starting new ones.`,
+      impact:'high'
+    });
+    else if (ohr>70) ins.push({
+      icon:'✨',title:`Excellent cache efficiency: ${ohr.toFixed(0)}%`,
+      desc:`You're maximizing Anthropic's prompt cache. Stable system prompts and long sessions are keeping costs low.`,
+      impact:'positive'
+    });
+  }
+
+  // project spread
+  if (projects.length>5) {
+    const totalMsg=projects.reduce((a,p)=>a+p.messages,0);
+    const top3=projects.slice(0,3).reduce((a,p)=>a+p.messages,0);
+    const conc=totalMsg>0?top3/totalMsg*100:0;
+    if (conc<60) ins.push({
+      icon:'📂',title:`Activity across ${projects.length} projects`,
+      desc:`Top 3 projects = ${conc.toFixed(0)}% of messages. Each project starts with a cold cache. Fewer active projects → better cache efficiency.`,
+      impact:'low'
+    });
+  }
+
+  // output ratio
+  if ((tot.output||0)>0 && (tot.input||0)>0 && tot.output/tot.input>0.5) ins.push({
+    icon:'💡',title:`High output ratio (${Math.round(tot.output/tot.input*100)}%)`,
+    desc:`Output tokens are the most expensive component. If Claude is verbose, instruct it to be concise — especially in tool descriptions and explanations.`,
+    impact:'medium'
+  });
+
+  if (!ins.length) ins.push({ icon:'📊', title:'Building your profile…',
+    desc:'More usage data needed (14+ days) to surface personalized patterns.', impact:'info' });
+
+  const ord={high:0,medium:1,low:2,info:3,positive:4};
+  ins.sort((a,b)=>(ord[a.impact]??5)-(ord[b.impact]??5));
+  return ins;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SUMMARY
+═══════════════════════════════════════════════════════════ */
 function renderSummary() {
   const { costData } = appData;
-  const container = document.getElementById('summary-grid');
-  const totals = costData.totals || {};
-  const days   = costData.days   || [];
-  const rates  = costData.rates  || { input: 5/1e6, output: 25/1e6, cacheRead: .5/1e6, cacheCreate: 6.25/1e6 };
-  const today  = new Date().toISOString().slice(0, 10);
-  const todayD = days.find(d => d.date === today);
+  const days   = costData.days  ||[];
+  const totals = costData.totals||{};
+  const rates  = costData.rates ||{input:5/1e6,output:25/1e6,cacheRead:.5/1e6,cacheCreate:6.25/1e6};
+  const today  = new Date().toISOString().slice(0,10);
+  const td = days.find(d=>d.date===today);
 
-  const metrics = (d) => {
-    const allInput = d.input + d.cacheRead + d.cacheCreate;
-    const hitRate  = allInput > 0 ? d.cacheRead / allInput * 100 : 0;
-    const noCost   = allInput * rates.input + d.output * rates.output;
-    const saved    = noCost - d.cost;
-    return { hitRate, saved };
+  const metrics = d => {
+    const allIn = d.input+d.cacheRead+d.cacheCreate;
+    const hr    = allIn>0 ? d.cacheRead/allIn*100 : 0;
+    const noCost= allIn*rates.input + d.output*rates.output;
+    return { hr, saved: Math.max(0,noCost-d.cost) };
   };
 
-  const modelsHtml = (models) => {
-    if (!models || !Object.keys(models).length) return '';
-    const top3 = Object.entries(models).sort((a,b) => b[1]-a[1]).slice(0, 3);
+  const modelsHtml = (models,bg) => {
+    if (!models||!Object.keys(models).length) return '';
+    const top3 = Object.entries(models).sort((a,b)=>b[1]-a[1]).slice(0,3);
     return `<div class="top-models">
-      <div style="font-size:.62rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">
-        Top Models
-      </div>
-      ${top3.map(([m, c], i) => `
-        <div class="model-row">
-          <span class="model-rank">${i+1}.</span>
-          <span class="model-name" title="${esc(m)}">${esc(m)}</span>
-          <span class="model-count">${fmt(c)} resp.</span>
-        </div>`).join('')}
+      <div class="model-label-row">Top Models</div>
+      ${top3.map(([m,c],i)=>`<div class="model-entry">
+        <span class="model-rank">${i+1}</span>
+        <span class="model-name" title="${esc(m)}">${esc(m)}</span>
+        <span class="model-cnt">${fmt(c)}</span>
+      </div>`).join('')}
     </div>`;
   };
 
   const panel = (d, isToday, models) => {
-    const cls   = isToday ? 'today' : 'alltime';
-    const badge = isToday ? 'Today' : 'All Time';
-    const sub   = isToday ? today : (days.length ? `Since ${days[0].date}` : '');
-    const m     = metrics(d);
-    const hc    = m.hitRate > 80 ? 'green' : m.hitRate > 50 ? 'amber' : 'red';
-    return `
-    <div class="summary-panel ${cls}">
-      <div class="panel-header">
-        <span class="panel-badge">${badge}</span>
-        <span class="panel-date">${sub}</span>
-      </div>
-      <div class="metric-grid">
-        <div class="metric">
-          <div class="metric-label">Sessions <span class="tip" data-tooltip="Distinct session IDs active on this period. Each Claude Code startup = one session.">?</span></div>
-          <div class="metric-value">${fmt(d.sessions)}</div>
+    const m   = metrics(d);
+    const hc  = m.hr>80?'green':m.hr>50?'gold':'red';
+    const tag = isToday
+      ? `<div class="panel-tag today-tag"><span class="dot"></span>Today — ${today}</div>`
+      : `<div class="panel-tag all-tag"><span class="dot" style="background:var(--ink-3)"></span>All Time${days.length?' — since '+days[0].date:''}</div>`;
+    return `<div class="sum-panel ${isToday?'today':'alltime'}">
+      ${tag}
+      <div class="mrow">
+        <div class="met">
+          <div class="met-lbl">Sessions <span class="tip" data-tip="Distinct session IDs active this period.">?</span></div>
+          <div class="met-val">${fmt(d.sessions)}</div>
         </div>
-        <div class="metric">
-          <div class="metric-label">Messages <span class="tip" data-tooltip="User prompts sent. Multiple messages can share a session and benefit from the same cache.">?</span></div>
-          <div class="metric-value">${fmt(d.messages)}</div>
+        <div class="met">
+          <div class="met-lbl">Messages <span class="tip" data-tip="User prompts sent. Multiple messages share session cache.">?</span></div>
+          <div class="met-val">${fmt(d.messages)}</div>
         </div>
-        <div class="metric">
-          <div class="metric-label">Tool Calls <span class="tip" data-tooltip="Total tool invocations by Claude (Bash, Read, Edit, Write, Grep, etc.) in this period.">?</span></div>
-          <div class="metric-value">${fmt(d.toolCalls)}</div>
+        <div class="met">
+          <div class="met-lbl">Tool Calls <span class="tip" data-tip="Total tool invocations by Claude this period.">?</span></div>
+          <div class="met-val">${fmt(d.toolCalls)}</div>
         </div>
-        <div class="metric">
-          <div class="metric-label">Cache Hit <span class="tip" data-tooltip="cacheRead ÷ (input + cacheRead + cacheCreate). Higher = more tokens served from cache at 90% discount.">?</span></div>
-          <div class="metric-value ${hc}">${m.hitRate.toFixed(1)}%</div>
+        <div class="met">
+          <div class="met-lbl">Cache Hit <span class="tip" data-tip="cacheRead ÷ (input+cacheRead+cacheCreate). Higher = more tokens at 90% discount.">?</span></div>
+          <div class="met-val ${hc}">${m.hr.toFixed(1)}%</div>
         </div>
       </div>
-      <hr class="summary-divider">
-      <div class="metric-grid">
-        <div class="metric">
-          <div class="metric-label">Est. Cost <span class="tip" data-tooltip="Estimated API cost based on token usage × your configured rates. Set rates in .env to match your actual billing.">?</span></div>
-          <div class="metric-value amber">$${d.cost.toFixed(2)}</div>
+      <div class="met-div"></div>
+      <div class="mrow">
+        <div class="met">
+          <div class="met-lbl">Est. Cost <span class="tip" data-tip="Estimated spend based on token usage × your rates. Configure in .env">?</span></div>
+          <div class="met-val gold">$${d.cost.toFixed(2)}</div>
         </div>
-        <div class="metric">
-          <div class="metric-label">Saved <span class="tip" data-tooltip="(allInput × inputRate + output × outputRate) − actualCost. Money avoided by cache reads being cheaper than fresh input.">?</span></div>
-          <div class="metric-value green">$${Math.max(0, m.saved).toFixed(2)}</div>
+        <div class="met">
+          <div class="met-lbl">Saved <span class="tip" data-tip="(allInput×inputRate + output×outputRate) − actualCost. Money avoided via caching.">?</span></div>
+          <div class="met-val green">$${m.saved.toFixed(2)}</div>
         </div>
-        <div class="metric">
-          <div class="metric-label">Cache Read <span class="tip" data-tooltip="Tokens served from Anthropic's prompt cache. Each cache read costs ~90% less than the equivalent fresh input token.">?</span></div>
-          <div class="metric-value blue">${fmt(d.cacheRead)}</div>
+        <div class="met">
+          <div class="met-lbl">Cache Read <span class="tip" data-tip="Tokens served from cache. Each costs ~90% less than a fresh input token.">?</span></div>
+          <div class="met-val blue">${fmt(d.cacheRead)}</div>
         </div>
-        <div class="metric">
-          <div class="metric-label">Output Tokens <span class="tip" data-tooltip="Tokens generated by Claude in responses. Billed at the output rate, which is the highest rate in the pricing structure.">?</span></div>
-          <div class="metric-value">${fmt(d.output)}</div>
+        <div class="met">
+          <div class="met-lbl">Output <span class="tip" data-tip="Tokens generated by Claude. Billed at the highest rate.">?</span></div>
+          <div class="met-val">${fmt(d.output)}</div>
         </div>
       </div>
       ${modelsHtml(models)}
     </div>`;
   };
 
-  const zero = { sessions:0, messages:0, toolCalls:0, cost:0, input:0, output:0, cacheRead:0, cacheCreate:0 };
-  const todayPanel = todayD
-    ? panel(todayD, true, todayD.models)
-    : `<div class="summary-panel today">
-        <div class="panel-header"><span class="panel-badge">Today</span><span class="panel-date">${today}</span></div>
-        <div style="padding:12px;font-size:.8rem;color:var(--text-dim)">No Claude Code activity yet today.</div>
+  const zero = {sessions:0,messages:0,toolCalls:0,cost:0,input:0,output:0,cacheRead:0,cacheCreate:0};
+  const todayPanel = td ? panel(td,true,td.models)
+    : `<div class="sum-panel today">
+        <div class="panel-tag today-tag"><span class="dot"></span>Today — ${today}</div>
+        <div class="empty">No activity yet today.</div>
        </div>`;
 
-  container.innerHTML = todayPanel + panel(totals, false, totals.models);
+  document.getElementById('sum-grid').innerHTML = todayPanel + panel(totals,false,totals.models);
 }
 
-// ═══════════════════════════════════════════════════════════
-// Render: Cache Cards
-// ═══════════════════════════════════════════════════════════
-function renderCacheCards() {
+/* ═══════════════════════════════════════════════════════════
+   CACHE
+═══════════════════════════════════════════════════════════ */
+function renderCache() {
   const { costData } = appData;
-  const totals = costData.totals || {};
-  const rates  = costData.rates  || { input: 5/1e6, output: 25/1e6 };
-  const totalAllInput = (totals.input||0) + (totals.cacheRead||0) + (totals.cacheCreate||0);
-  const hitRate       = totalAllInput > 0 ? totals.cacheRead / totalAllInput * 100 : 0;
-  const noCacheCost   = totalAllInput * rates.input + (totals.output||0) * rates.output;
-  const saved         = noCacheCost - (totals.cost || 0);
-  const savPct        = noCacheCost > 0 ? (1 - (totals.cost||0) / noCacheCost) * 100 : 0;
-  const hc            = hitRate > 80 ? 'var(--green)' : hitRate > 50 ? 'var(--amber)' : 'var(--red)';
+  const totals = costData.totals||{};
+  const rates  = costData.rates||{input:5/1e6,output:25/1e6};
+  const allIn  = (totals.input||0)+(totals.cacheRead||0)+(totals.cacheCreate||0);
+  const hr     = allIn>0 ? totals.cacheRead/allIn*100 : 0;
+  const noCost = allIn*rates.input + (totals.output||0)*rates.output;
+  const saved  = Math.max(0, noCost-(totals.cost||0));
+  const savPct = noCost>0 ? (1-(totals.cost||0)/noCost)*100 : 0;
+  const hCol   = hr>80?'var(--green)':hr>50?'var(--gold)':'var(--red)';
 
-  document.getElementById('cache-cards').innerHTML = `
-    <div class="card">
-      <div class="label">Cache Hit Rate <span class="tip" data-tooltip="How often input tokens were served from cache vs freshly processed. Target &gt;70% for meaningful savings.">?</span></div>
-      <div class="value" style="color:${hc}">${hitRate.toFixed(1)}%</div>
-      <div class="sub">${fmt(totals.cacheRead)} of ${fmt(totalAllInput)} input tokens</div>
+  document.getElementById('cache-grid').innerHTML = `
+    <div class="cache-card">
+      <div class="cc-label">Hit Rate <span class="tip" data-tip="How often input tokens came from cache vs fresh. Target > 70%.">?</span></div>
+      <div class="cc-val" style="color:${hCol}">${hr.toFixed(1)}%</div>
+      <div class="cc-sub">${fmt(totals.cacheRead)} of ${fmt(allIn)} tokens</div>
     </div>
-    <div class="card">
-      <div class="label">Cost With Cache <span class="tip" data-tooltip="What you actually paid — using cache read and cache write rates where applicable.">?</span></div>
-      <div class="value" style="color:var(--amber)">$${(totals.cost||0).toFixed(2)}</div>
-      <div class="sub">Actual estimated spend</div>
+    <div class="cache-card">
+      <div class="cc-label">Actual Cost <span class="tip" data-tip="What you paid using cache read/write rates where applicable.">?</span></div>
+      <div class="cc-val" style="color:var(--gold)">$${(totals.cost||0).toFixed(2)}</div>
+      <div class="cc-sub">With caching</div>
     </div>
-    <div class="card">
-      <div class="label">Cost Without Cache <span class="tip" data-tooltip="What you would have paid if all input tokens were billed at the fresh input rate (no caching at all).">?</span></div>
-      <div class="value" style="color:var(--red)">$${noCacheCost.toFixed(2)}</div>
-      <div class="sub">If all input at $${(rates.input*1e6).toFixed(0)}/M</div>
+    <div class="cache-card">
+      <div class="cc-label">Without Cache <span class="tip" data-tip="What you would have paid if all input were billed at the fresh input rate.">?</span></div>
+      <div class="cc-val" style="color:var(--red)">$${noCost.toFixed(2)}</div>
+      <div class="cc-sub">At $${(rates.input*1e6).toFixed(0)}/M flat</div>
     </div>
-    <div class="card">
-      <div class="label">Cache Savings <span class="tip" data-tooltip="Cost Without Cache − Cost With Cache. The dollar value of cache efficiency. Cache writes are an investment — they cost more upfront but each future read is much cheaper.">?</span></div>
-      <div class="value" style="color:var(--green)">$${Math.max(0, saved).toFixed(2)}</div>
-      <div class="sub">${savPct.toFixed(0)}% cheaper overall</div>
-    </div>
-  `;
+    <div class="cache-card">
+      <div class="cc-label">Saved <span class="tip" data-tip="Without Cache − Actual Cost. The dollar value of your cache efficiency.">?</span></div>
+      <div class="cc-val" style="color:var(--green)">$${saved.toFixed(2)}</div>
+      <div class="cc-sub">${savPct.toFixed(0)}% cheaper</div>
+    </div>`;
 }
 
-// ═══════════════════════════════════════════════════════════
-// Render: Daily Costs
-// ═══════════════════════════════════════════════════════════
-function renderDailyCosts() {
+/* ═══════════════════════════════════════════════════════════
+   DAILY COSTS
+═══════════════════════════════════════════════════════════ */
+function renderDaily() {
   const { costData } = appData;
-  const { days = [], totals = {}, rates = {} } = costData;
-  const container = document.getElementById('daily-costs');
-  if (!days.length) { container.innerHTML = '<div class="empty">No cost data found.</div>'; return; }
+  const { days=[], totals={}, rates={} } = costData;
+  const el = document.getElementById('daily-wrap');
+  if (!days.length) { el.innerHTML='<div class="empty">No cost data.</div>'; return; }
 
-  const maxCost = Math.max(...days.map(d => d.cost), 0.001);
+  const ri = rates.input||5e-6, ro = rates.output||25e-6;
+  const maxCost = Math.max(...days.map(d=>d.cost),.001);
 
+  // Bar visualisation above table
+  const bars = days.slice(-14).map(d => {
+    const allIn = d.input+d.cacheRead+d.cacheCreate;
+    const hr    = allIn>0?d.cacheRead/allIn*100:0;
+    const w     = Math.max(d.cost/maxCost*100,1);
+    return `<div class="bar-row cost" style="cursor:default">
+      <span class="bar-label">${d.date.slice(5)}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${w}%"></div></div>
+      <span class="bar-num col-${hr>70?'green':hr>40?'gold':'red'}">${hr.toFixed(0)}%</span>
+    </div>`;
+  }).join('');
+
+  // Full table
   const rows = days.map(d => {
-    const allInput = d.input + d.cacheRead + d.cacheCreate;
-    const hr   = allInput > 0 ? d.cacheRead / allInput * 100 : 0;
-    const noCost = allInput * (rates.input||5e-6) + d.output * (rates.output||25e-6);
-    const sv   = Math.max(0, noCost - d.cost);
-    const barW = Math.max((d.cost / maxCost) * 90, 2);
-    return `
-    <tr>
-      <td style="white-space:nowrap">${d.date}</td>
-      <td class="val">${fmt(d.messages)}</td>
-      <td class="val">${fmt(d.toolCalls)}</td>
-      <td class="val">${fmt(d.sessions)}</td>
-      <td class="val">${fmt(d.cacheRead)}</td>
-      <td class="val">${fmt(d.cacheCreate)}</td>
-      <td class="val ${hitClass(hr)}">${hr.toFixed(1)}%</td>
-      <td class="val">
-        <div class="bar-wrap">
-          <div class="bar cost" style="width:${barW}px"></div>
-          <span>$${d.cost.toFixed(4)}</span>
-        </div>
-      </td>
-      <td class="val" style="color:var(--green)">$${sv.toFixed(4)}</td>
+    const allIn = d.input+d.cacheRead+d.cacheCreate;
+    const hr    = allIn>0?d.cacheRead/allIn*100:0;
+    const noCost= allIn*ri+d.output*ro;
+    const sv    = Math.max(0,noCost-d.cost);
+    return `<tr>
+      <td class="bright">${d.date}</td>
+      <td class="r">${fmt(d.messages)}</td>
+      <td class="r">${fmt(d.toolCalls)}</td>
+      <td class="r">${fmt(d.sessions)}</td>
+      <td class="r">${fmt(d.cacheRead)}</td>
+      <td class="r">${fmt(d.cacheCreate)}</td>
+      <td class="r ${hrClass(hr)}">${hr.toFixed(1)}%</td>
+      <td class="r col-gold">$${d.cost.toFixed(4)}</td>
+      <td class="r col-green">$${sv.toFixed(4)}</td>
     </tr>`;
   }).join('');
 
-  const totalAllInput = (totals.input||0) + (totals.cacheRead||0) + (totals.cacheCreate||0);
-  const totalHR = totalAllInput > 0 ? totals.cacheRead / totalAllInput * 100 : 0;
-  const totalNoCost = totalAllInput * (rates.input||5e-6) + (totals.output||0) * (rates.output||25e-6);
-  const totalSaved  = Math.max(0, totalNoCost - (totals.cost||0));
+  const allIn2=(totals.input||0)+(totals.cacheRead||0)+(totals.cacheCreate||0);
+  const thr=allIn2>0?totals.cacheRead/allIn2*100:0;
+  const tnoCost=allIn2*ri+(totals.output||0)*ro;
+  const tsv=Math.max(0,tnoCost-(totals.cost||0));
 
-  container.innerHTML = `
-    <div class="table-wrap">
+  el.innerHTML = `
+    <div style="margin-bottom:28px">
+      <div style="font-family:var(--fm);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-3);margin-bottom:14px">
+        Last 14 days — cost bars / cache hit rate
+      </div>
+      <div class="bar-list">${bars}</div>
+    </div>
+    <div class="tbl-wrap">
       <table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th style="text-align:right">Msgs <span class="tip" data-tooltip="User messages sent on this day.">?</span></th>
-            <th style="text-align:right">Tools <span class="tip" data-tooltip="Total tool calls made by Claude on this day.">?</span></th>
-            <th style="text-align:right">Sess <span class="tip" data-tooltip="Distinct sessions active on this day.">?</span></th>
-            <th style="text-align:right">Cache Read <span class="tip" data-tooltip="Tokens served from cache — billed at ~90% discount vs fresh input.">?</span></th>
-            <th style="text-align:right">Cache Write <span class="tip" data-tooltip="Tokens written to cache this day. These cost 25% more than input but enable future reads to be much cheaper.">?</span></th>
-            <th style="text-align:right">Hit Rate <span class="tip" data-tooltip="cacheRead ÷ totalInput for this day. Days with high hit rates had good context reuse.">?</span></th>
-            <th style="text-align:right">Est. Cost <span class="tip" data-tooltip="Estimated spend for this day based on your configured rates.">?</span></th>
-            <th style="text-align:right">Saved <span class="tip" data-tooltip="Estimated savings vs if all input were billed at the fresh input rate.">?</span></th>
-          </tr>
-        </thead>
+        <thead><tr>
+          <th>Date</th>
+          <th class="r">Msgs <span class="tip" data-tip="User messages this day.">?</span></th>
+          <th class="r">Tools <span class="tip" data-tip="Tool calls made by Claude.">?</span></th>
+          <th class="r">Sess</th>
+          <th class="r">Cache Read <span class="tip" data-tip="Tokens served from cache — ~90% cheaper than fresh input.">?</span></th>
+          <th class="r">Cache Write <span class="tip" data-tip="Tokens written to cache. 25% premium upfront, paid back on future reads.">?</span></th>
+          <th class="r">Hit Rate <span class="tip" data-tip="cacheRead ÷ totalInput for this day.">?</span></th>
+          <th class="r">Cost <span class="tip" data-tip="Estimated spend at your configured rates.">?</span></th>
+          <th class="r">Saved <span class="tip" data-tip="Without-cache cost minus actual cost.">?</span></th>
+        </tr></thead>
         <tbody>
           ${rows}
           <tr class="total-row">
             <td>Total</td>
-            <td class="val">${fmt(totals.messages)}</td>
-            <td class="val">${fmt(totals.toolCalls)}</td>
-            <td class="val">${fmt(totals.sessions)}</td>
-            <td class="val">${fmt(totals.cacheRead)}</td>
-            <td class="val">${fmt(totals.cacheCreate)}</td>
-            <td class="val ${hitClass(totalHR)}">${totalHR.toFixed(1)}%</td>
-            <td class="val">$${(totals.cost||0).toFixed(4)}</td>
-            <td class="val" style="color:var(--green)">$${totalSaved.toFixed(4)}</td>
+            <td class="r">${fmt(totals.messages)}</td>
+            <td class="r">${fmt(totals.toolCalls)}</td>
+            <td class="r">${fmt(totals.sessions)}</td>
+            <td class="r">${fmt(totals.cacheRead)}</td>
+            <td class="r">${fmt(totals.cacheCreate)}</td>
+            <td class="r ${hrClass(thr)}">${thr.toFixed(1)}%</td>
+            <td class="r col-gold">$${(totals.cost||0).toFixed(4)}</td>
+            <td class="r col-green">$${tsv.toFixed(4)}</td>
           </tr>
         </tbody>
       </table>
     </div>
-    <div class="cost-note">
-      Rates: Input $${((rates.input||5e-6)*1e6).toFixed(2)}/M · Output $${((rates.output||25e-6)*1e6).toFixed(2)}/M · Cache Read $${((rates.cacheRead||.5e-6)*1e6).toFixed(2)}/M · Cache Write $${((rates.cacheCreate||6.25e-6)*1e6).toFixed(2)}/M — configure in <code>.env</code>
+    <div class="tbl-note">
+      Rates — Input: $${(ri*1e6).toFixed(2)}/M · Output: $${(ro*1e6).toFixed(2)}/M ·
+      Cache Read: $${((rates.cacheRead||.5e-6)*1e6).toFixed(2)}/M · Cache Write: $${((rates.cacheCreate||6.25e-6)*1e6).toFixed(2)}/M
+      — configure in <code>.env</code>
     </div>`;
 }
 
-// ═══════════════════════════════════════════════════════════
-// Render: Tool Calls
-// ═══════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
+   TOOLS
+═══════════════════════════════════════════════════════════ */
 function renderTools() {
   const { toolData } = appData;
-  const allTools = toolData.tools || [];
-  const byProject = toolData.byProject || {};
-  const container = document.getElementById('tool-calls');
-  if (!allTools.length) { container.innerHTML = '<div class="empty">No tool calls found.</div>'; return; }
+  const allTools  = toolData.tools    ||[];
+  const byProject = toolData.byProject||{};
+  const el = document.getElementById('tools-wrap');
+  if (!allTools.length) { el.innerHTML='<div class="empty">No tool calls found.</div>'; return; }
 
-  const projects = Object.keys(byProject);
-
-  container.innerHTML = `
-    <div class="tool-controls">
-      <label for="tool-project-filter">Filter by project:</label>
-      <select id="tool-project-filter">
+  const projs = Object.keys(byProject);
+  el.innerHTML = `
+    <div class="tool-ctrl">
+      <label>Filter project:</label>
+      <select id="tool-proj">
         <option value="">All projects</option>
-        ${projects.map(p => `<option value="${esc(p)}">${esc(shortProj(p))}</option>`).join('')}
+        ${projs.map(p=>`<option value="${esc(p)}">${esc(shortProj(p))}</option>`).join('')}
       </select>
     </div>
-    <div class="table-wrap">
-      <table>
-        <tbody id="tool-table-body"></tbody>
-      </table>
-    </div>
-    <div id="tool-detail-container"></div>`;
+    <div class="bar-list" id="tool-bar-list"></div>
+    <div id="tool-detail"></div>`;
 
-  renderToolTable('');
+  renderToolBars('');
 
-  document.getElementById('tool-project-filter').addEventListener('change', (e) => {
-    renderToolTable(e.target.value);
-  });
-  document.getElementById('tool-table-body').addEventListener('click', (e) => {
-    const row = e.target.closest('.tool-row');
-    if (row) loadToolDetails(row.dataset.tool);
+  document.getElementById('tool-proj').addEventListener('change', e => renderToolBars(e.target.value));
+  document.getElementById('tool-bar-list').addEventListener('click', e => {
+    const row = e.target.closest('[data-tool]');
+    if (row) loadToolDetail(row.dataset.tool);
   });
 }
 
-function renderToolTable(projFilter) {
+function renderToolBars(projFilter) {
   const { toolData } = appData;
-  const allTools   = toolData.tools   || [];
-  const byProject  = toolData.byProject || {};
-  const tbody = document.getElementById('tool-table-body');
-
+  const allTools  = toolData.tools   ||[];
+  const byProject = toolData.byProject||{};
   let tools = allTools;
   if (projFilter) {
-    const projCounts = byProject[projFilter] || {};
-    tools = allTools
-      .map(t => ({ tool: t.tool, count: projCounts[t.tool] || 0 }))
-      .filter(t => t.count > 0)
-      .sort((a,b) => b.count - a.count);
+    const pc = byProject[projFilter]||{};
+    tools = allTools.map(t=>({tool:t.tool,count:pc[t.tool]||0})).filter(t=>t.count>0).sort((a,b)=>b.count-a.count);
   }
-
-  if (!tools.length) { tbody.innerHTML = `<tr><td colspan="2" class="empty">No tool calls for this project.</td></tr>`; return; }
-
-  const max = tools[0].count;
-  tbody.innerHTML = tools.map(t => `
-    <tr class="tool-row" data-tool="${esc(t.tool)}">
-      <td class="tool-name">${esc(t.tool)}</td>
-      <td style="width:100%">
-        <div class="bar-wrap">
-          <div class="bar" style="width:${Math.max(t.count/max*100, 1)}%"></div>
-          <span class="bar-lbl">${fmt(t.count)}</span>
-        </div>
-      </td>
-    </tr>`).join('');
+  const max = tools[0]?.count||1;
+  const el  = document.getElementById('tool-bar-list');
+  if (!tools.length) { el.innerHTML='<div class="empty">No calls for this project.</div>'; return; }
+  el.innerHTML = tools.map(t=>`
+    <div class="bar-row tool" data-tool="${esc(t.tool)}">
+      <span class="bar-label">${esc(t.tool)}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.max(t.count/max*100,1)}%"></div></div>
+      <span class="bar-num">${fmt(t.count)}</span>
+    </div>`).join('');
 }
 
-// ═══════════════════════════════════════════════════════════
-// Tool Details
-// ═══════════════════════════════════════════════════════════
-async function loadToolDetails(toolName) {
-  const container = document.getElementById('tool-detail-container');
-  container.innerHTML = '<div class="detail-panel"><div class="loading">Loading…</div></div>';
-
-  const calls = await fetch(`/api/tool-details/${encodeURIComponent(toolName)}`).then(r => r.json()).catch(() => []);
+/* ═══════════════════════════════════════════════════════════
+   TOOL DETAIL
+═══════════════════════════════════════════════════════════ */
+async function loadToolDetail(toolName) {
+  const el = document.getElementById('tool-detail');
+  el.innerHTML = '<div class="detail-panel"><div class="loading">Loading…</div></div>';
+  const calls = await fetch(`/api/tool-details/${encodeURIComponent(toolName)}`).then(r=>r.json()).catch(()=>[]);
   window._lastToolCalls = { toolName, calls };
 
-  const panel = document.createElement('div');
-  panel.className = 'detail-panel';
-
   let rows = '';
-  for (const c of calls.slice(0, 200)) {
-    const proj = shortProj(c.project || '');
-    const time = fmtDT(c.timestamp);
-    if (toolName === 'Bash') {
-      rows += `<div class="detail-row">
-        ${c.description ? `<div class="detail-desc">${esc(c.description)}</div>` : ''}
-        <div class="detail-cmd">$ ${esc(c.command)}</div>
-        <div class="detail-meta">${time} · ${proj}</div>
-      </div>`;
+  for (const c of calls.slice(0,200)) {
+    const proj = shortProj(c.project||''), time = fmtDT(c.timestamp);
+    if (toolName==='Bash') {
+      rows += `<div class="drow">${c.description?`<div class="d-desc">${esc(c.description)}</div>`:''}<div class="d-cmd">$ ${esc(c.command)}</div><div class="d-meta">${time} · ${proj}</div></div>`;
     } else if (['Read','Edit','Write'].includes(toolName)) {
-      rows += `<div class="detail-row">
-        <div class="detail-path">${esc(c.file_path)}</div>
-        <div class="detail-meta">${time} · ${proj}</div>
-      </div>`;
-    } else if (toolName === 'Grep') {
-      rows += `<div class="detail-row">
-        <div class="detail-cmd">/${esc(c.pattern)}/</div>
-        ${c.path ? `<div class="detail-path">${esc(c.path)}</div>` : ''}
-        ${c.glob ? `<div class="detail-desc">glob: ${esc(c.glob)}</div>` : ''}
-        <div class="detail-meta">${time} · ${proj}</div>
-      </div>`;
-    } else if (toolName === 'Glob') {
-      rows += `<div class="detail-row">
-        <div class="detail-cmd">${esc(c.pattern)}</div>
-        ${c.path ? `<div class="detail-path">${esc(c.path)}</div>` : ''}
-        <div class="detail-meta">${time} · ${proj}</div>
-      </div>`;
-    } else if (toolName === 'Agent') {
-      rows += `<div class="detail-row">
-        <div class="detail-desc">${esc(c.description)}</div>
-        ${c.subagent_type ? `<div class="detail-path">type: ${esc(c.subagent_type)}</div>` : ''}
-        <div class="detail-meta">${time} · ${proj}</div>
-      </div>`;
+      rows += `<div class="drow"><div class="d-path">${esc(c.file_path)}</div><div class="d-meta">${time} · ${proj}</div></div>`;
+    } else if (toolName==='Grep') {
+      rows += `<div class="drow"><div class="d-cmd">/${esc(c.pattern)}/</div>${c.path?`<div class="d-path">${esc(c.path)}</div>`:''}<div class="d-meta">${time} · ${proj}</div></div>`;
+    } else if (toolName==='Glob') {
+      rows += `<div class="drow"><div class="d-cmd">${esc(c.pattern)}</div>${c.path?`<div class="d-path">${esc(c.path)}</div>`:''}<div class="d-meta">${time} · ${proj}</div></div>`;
+    } else if (toolName==='Agent') {
+      rows += `<div class="drow"><div class="d-desc">${esc(c.description)}</div>${c.subagent_type?`<div class="d-path">type: ${esc(c.subagent_type)}</div>`:''}<div class="d-meta">${time} · ${proj}</div></div>`;
     } else {
-      rows += `<div class="detail-row">
-        <div class="detail-cmd">${esc(c.input || '')}</div>
-        <div class="detail-meta">${time} · ${proj}</div>
-      </div>`;
+      rows += `<div class="drow"><div class="d-cmd">${esc(c.input||'')}</div><div class="d-meta">${time} · ${proj}</div></div>`;
     }
   }
-  if (calls.length > 200) rows += `<div class="detail-row detail-meta">…and ${calls.length - 200} more</div>`;
+  if (calls.length>200) rows+=`<div class="drow d-meta">…and ${calls.length-200} more</div>`;
 
-  panel.innerHTML = `
-    <div class="detail-panel-header">
-      <span class="detail-panel-title">${esc(toolName)} — ${fmt(calls.length)} calls</span>
-      <div class="detail-panel-actions">
-        <button class="btn btn-sm" onclick="exportToolCalls()">↓ Export</button>
-        <button class="btn btn-sm" onclick="this.closest('.detail-panel').remove()">✕ Close</button>
+  el.innerHTML = `<div class="detail-panel">
+    <div class="detail-head">
+      <span class="detail-title">${esc(toolName)} — ${fmt(calls.length)} calls</span>
+      <div class="detail-acts">
+        <button class="tbtn btn-sm" onclick="exportToolCalls()">↓ Export</button>
+        <button class="tbtn btn-sm" onclick="document.getElementById('tool-detail').innerHTML=''">✕</button>
       </div>
     </div>
-    ${rows}`;
-
-  container.innerHTML = '';
-  container.appendChild(panel);
+    ${rows}</div>`;
 }
 
-// ═══════════════════════════════════════════════════════════
-// Render: Projects
-// ═══════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
+   PROJECTS
+═══════════════════════════════════════════════════════════ */
 function renderProjects() {
-  const tbody = document.getElementById('projects-body');
-  tbody.innerHTML = appData.projects.map(p => `
+  const tbody = document.getElementById('proj-body');
+  if (!appData.projects.length) { tbody.innerHTML='<tr><td colspan="4" class="empty">No projects.</td></tr>'; return; }
+  tbody.innerHTML = appData.projects.map(p=>`
     <tr>
       <td>
         <span class="badge">${esc(p.shortName)}</span>
-        <br><span class="session-id" title="${esc(p.name)}">${esc(p.name)}</span>
+        <span class="proj-path" title="${esc(p.name)}">${esc(p.name)}</span>
       </td>
-      <td>${fmt(p.messages)}</td>
-      <td>${fmt(p.sessions)}</td>
-      <td style="white-space:nowrap">${fmtDT(p.lastSeen)}</td>
-    </tr>`).join('') || '<tr><td colspan="4" class="empty">No projects found.</td></tr>';
+      <td class="r bright">${fmt(p.messages)}</td>
+      <td class="r">${fmt(p.sessions)}</td>
+      <td class="r" style="white-space:nowrap">${fmtDT(p.lastSeen)}</td>
+    </tr>`).join('');
 }
 
-// ═══════════════════════════════════════════════════════════
-// Render: Prompt History
-// ═══════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
+   HISTORY
+═══════════════════════════════════════════════════════════ */
 function renderHistory() {
   const { history } = appData;
-  const allProjects = [...new Set(history.map(h => h.project).filter(Boolean))];
-  const tabs = document.getElementById('history-tabs');
+  const allProj = [...new Set(history.map(h=>h.project).filter(Boolean))];
+  const tabs = document.getElementById('hist-tabs');
 
-  tabs.innerHTML = `<button class="tab ${activeTab==='all'?'active':''}" data-project="all">All</button>` +
-    allProjects.map(p => `<button class="tab ${activeTab===p?'active':''}" data-project="${esc(p)}">${esc(shortProj(p))}</button>`).join('');
+  tabs.innerHTML = `<button class="tab ${activeTab==='all'?'active':''}" data-p="all">All</button>`
+    + allProj.map(p=>`<button class="tab ${activeTab===p?'active':''}" data-p="${esc(p)}">${esc(shortProj(p))}</button>`).join('');
 
-  tabs.addEventListener('click', (e) => {
-    if (!e.target.classList.contains('tab')) return;
-    activeTab = e.target.dataset.project;
-    tabs.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.project === activeTab));
-    renderHistoryRows();
+  tabs.addEventListener('click', e => {
+    const btn = e.target.closest('.tab');
+    if (!btn) return;
+    activeTab = btn.dataset.p;
+    tabs.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.p===activeTab));
+    renderHistRows();
   });
 
-  document.getElementById('history-search').addEventListener('input', (e) => {
-    historyFilter = e.target.value.toLowerCase();
-    renderHistoryRows();
+  document.getElementById('hist-search').addEventListener('input', e => {
+    histFilter = e.target.value.toLowerCase();
+    renderHistRows();
   });
 
-  renderHistoryRows();
+  renderHistRows();
 }
 
-function renderHistoryRows() {
-  const { history } = appData;
-  const tbody = document.getElementById('history-body');
-  expandedSession = null;
-
-  let filtered = activeTab === 'all' ? history : history.filter(h => h.project === activeTab);
-  if (historyFilter) {
-    filtered = filtered.filter(h =>
-      (h.display || '').toLowerCase().includes(historyFilter) ||
-      (h.project  || '').toLowerCase().includes(historyFilter) ||
-      (h.sessionId|| '').toLowerCase().includes(historyFilter)
-    );
-  }
-
+function renderHistRows() {
+  const tbody = document.getElementById('hist-body');
+  expandedSid = null;
+  let filtered = activeTab==='all' ? appData.history : appData.history.filter(h=>h.project===activeTab);
+  if (histFilter) filtered = filtered.filter(h =>
+    (h.display||'').toLowerCase().includes(histFilter)||
+    (h.project||'').toLowerCase().includes(histFilter)||
+    (h.sessionId||'').toLowerCase().includes(histFilter)
+  );
   const sorted = [...filtered].reverse();
-  if (!sorted.length) {
-    tbody.innerHTML = `<tr><td colspan="4" class="empty">No matching prompts.</td></tr>`;
-    return;
-  }
+  if (!sorted.length) { tbody.innerHTML='<tr><td colspan="4" class="empty">No matches.</td></tr>'; return; }
 
-  tbody.innerHTML = sorted.map(h => `
-    <tr class="history-row" data-session="${esc(h.sessionId||'')}">
-      <td style="white-space:nowrap">${fmtDT(h.timestamp)}</td>
+  tbody.innerHTML = sorted.map(h=>`
+    <tr class="history-row" data-sid="${esc(h.sessionId||'')}">
+      <td style="white-space:nowrap;color:var(--ink-3)">${fmtDT(h.timestamp)}</td>
       <td><span class="badge">${esc(shortProj(h.project))}</span></td>
-      <td class="prompt-text" title="${esc(h.display||'').replace(/"/g,'&quot;')}">
+      <td class="prompt-cell" title="${esc(h.display||'').replace(/"/g,'&quot;')}">
         ${esc(h.display||'')}
-        <span class="thread-indicator">▸</span>
+        <span class="thread-mark">▸</span>
       </td>
-      <td class="session-id">${(h.sessionId||'').slice(0,8)}</td>
+      <td class="sid">${(h.sessionId||'').slice(0,8)}</td>
     </tr>`).join('');
 
-  tbody.addEventListener('click', (e) => {
+  tbody.addEventListener('click', e => {
     const row = e.target.closest('.history-row');
-    if (!row) return;
-    const sid = row.dataset.session;
-    if (!sid) return;
-    handleThreadToggle(row, sid);
+    if (row) handleThread(row, row.dataset.sid);
   });
 }
 
-// ═══════════════════════════════════════════════════════════
-// Session Thread View
-// ═══════════════════════════════════════════════════════════
-async function handleThreadToggle(row, sessionId) {
+/* ═══════════════════════════════════════════════════════════
+   SESSION THREAD
+═══════════════════════════════════════════════════════════ */
+async function handleThread(row, sid) {
   const existing = row.nextElementSibling;
-  if (existing && existing.classList.contains('session-thread-row')) {
+  if (existing?.classList.contains('thread-row')) {
     existing.remove();
     row.classList.remove('expanded');
-    expandedSession = null;
+    expandedSid=null;
     return;
   }
-
-  // Close any other open thread
-  document.querySelectorAll('.session-thread-row').forEach(r => r.remove());
-  document.querySelectorAll('.history-row.expanded').forEach(r => r.classList.remove('expanded'));
-
-  expandedSession = sessionId;
+  document.querySelectorAll('.thread-row').forEach(r=>r.remove());
+  document.querySelectorAll('.history-row.expanded').forEach(r=>r.classList.remove('expanded'));
   row.classList.add('expanded');
+  expandedSid=sid;
 
-  const threadRow = document.createElement('tr');
-  threadRow.className = 'session-thread-row';
-  threadRow.innerHTML = `<td colspan="4"><div class="session-thread"><div class="loading">Loading thread…</div></div></td>`;
-  row.after(threadRow);
+  const tr = document.createElement('tr');
+  tr.className='thread-row';
+  tr.innerHTML=`<td colspan="4"><div class="thread-wrap"><div class="loading">Loading thread…</div></div></td>`;
+  row.after(tr);
 
-  const messages = await fetch(`/api/session/${encodeURIComponent(sessionId)}`).then(r => r.json()).catch(() => []);
-  const thread = threadRow.querySelector('.session-thread');
+  const msgs = await fetch(`/api/session/${encodeURIComponent(sid)}`).then(r=>r.json()).catch(()=>[]);
+  const wrap = tr.querySelector('.thread-wrap');
 
-  if (!messages.length) {
-    thread.innerHTML = '<div class="empty">No messages found for this session.</div>';
-    return;
-  }
+  if (!msgs.length) { wrap.innerHTML='<div class="empty">No messages found.</div>'; return; }
 
-  thread.innerHTML = messages.map(msg => {
-    const isUser = msg.type === 'user';
-    const initials = isUser ? 'U' : 'AI';
-    const role     = isUser ? 'You' : 'Claude';
-
-    let body = '';
-    if (msg.text) {
-      body += `<div class="thread-text" onclick="this.classList.toggle('expanded')">${esc(msg.text)}${msg.text.length >= 3000 ? '…' : ''}</div>`;
-    }
-    if (!isUser && msg.toolUses && msg.toolUses.length) {
-      body += `<div class="thread-tools">${msg.toolUses.map(t =>
-        `<span class="thread-tool-chip" title="${esc(t.summary)}">${esc(t.name)}</span>`
-      ).join('')}</div>`;
-    }
-    const meta = [fmtDT(msg.timestamp), msg.model ? msg.model.split('-').slice(-2).join('-') : null, msg.tokens ? `${fmt(msg.tokens)} tokens` : null].filter(Boolean).join(' · ');
-    body += `<div class="thread-meta">${meta}</div>`;
-
+  wrap.innerHTML = msgs.map(m=>{
+    const isU = m.type==='user';
+    let body='';
+    if (m.text) body+=`<div class="t-text" onclick="this.classList.toggle('open')">${esc(m.text)}${m.text.length>=3000?'…':''}</div>`;
+    if (!isU && m.toolUses?.length) body+=`<div class="t-tools">${m.toolUses.map(t=>`<span class="t-chip" title="${esc(t.summary)}">${esc(t.name)}</span>`).join('')}</div>`;
+    const meta=[fmtDT(m.timestamp),m.model?m.model.split('-').slice(-2).join('-'):null,m.tokens?fmt(m.tokens)+' tokens':null].filter(Boolean).join(' · ');
+    body+=`<div class="t-meta">${meta}</div>`;
     return `<div class="thread-msg">
-      <div class="thread-avatar ${msg.type}">${initials}</div>
-      <div class="thread-content">
-        <div class="thread-role">${role}</div>
-        ${body}
-      </div>
+      <div class="t-av ${m.type}">${isU?'U':'AI'}</div>
+      <div class="t-body"><div class="t-role">${isU?'You':'Claude'}</div>${body}</div>
     </div>`;
   }).join('');
 }
 
-// ═══════════════════════════════════════════════════════════
-// Render: Pattern Insights (client-side analysis)
-// ═══════════════════════════════════════════════════════════
-function renderInsights() {
-  const { history, toolData, costData, projects } = appData;
-  const insights = computeInsights(history, toolData, costData, projects);
-  const container = document.getElementById('insights-grid');
-
-  if (!insights.length) {
-    container.innerHTML = '<div class="empty">Not enough data yet. Keep using Claude Code and check back after a few sessions.</div>';
-    return;
+/* ═══════════════════════════════════════════════════════════
+   GLOBAL SEARCH
+═══════════════════════════════════════════════════════════ */
+document.getElementById('global-search').addEventListener('input', e => {
+  histFilter = e.target.value.toLowerCase();
+  document.getElementById('hist-search').value = histFilter;
+  if (histFilter) {
+    document.getElementById('s-history').scrollIntoView({behavior:'smooth',block:'start'});
   }
-
-  container.innerHTML = insights.map(ins => `
-    <div class="insight-card ${ins.impact}">
-      <div class="insight-icon">${ins.icon}</div>
-      <div class="insight-body">
-        <div class="insight-title">${esc(ins.title)}</div>
-        <div class="insight-desc">${esc(ins.description)}</div>
-      </div>
-    </div>`).join('');
-}
-
-function computeInsights(history, toolData, costData, projects) {
-  const insights = [];
-  const days    = (costData.days   || []).slice().sort((a,b) => a.date.localeCompare(b.date));
-  const totals  = costData.totals  || {};
-  const rates   = costData.rates   || { input: 5/1e6, output: 25/1e6 };
-  const tools   = toolData.tools   || [];
-  const toolMap = Object.fromEntries(tools.map(t => [t.tool, t.count]));
-
-  // ── 1. Peak activity hour ──────────────────────────────────
-  if (history.length > 10) {
-    const hourCounts = new Array(24).fill(0);
-    history.forEach(h => { if (h.timestamp) hourCounts[new Date(h.timestamp).getHours()]++; });
-    const peak    = hourCounts.indexOf(Math.max(...hourCounts));
-    const peakPct = Math.round(hourCounts[peak] / history.length * 100);
-    insights.push({
-      icon: '🕐',
-      title: `Peak activity: ${peak}:00–${peak+1}:00`,
-      description: `${peakPct}% of your prompts happen in this hour window. Starting sessions here leverages warm cache from earlier work in the same time block.`,
-      impact: 'info',
-    });
-  }
-
-  // ── 2. Cache hit rate trend (last 7 vs prior 7) ────────────
-  if (days.length >= 14) {
-    const hitRate = (subset) => {
-      const t = subset.reduce((a,d) => ({ r: a.r + d.cacheRead, tot: a.tot + d.input + d.cacheRead + d.cacheCreate }), { r:0, tot:0 });
-      return t.tot > 0 ? t.r / t.tot * 100 : 0;
-    };
-    const recent = hitRate(days.slice(-7));
-    const prev   = hitRate(days.slice(-14,-7));
-    const diff   = recent - prev;
-    if (Math.abs(diff) > 5) {
-      insights.push({
-        icon: diff > 0 ? '📈' : '📉',
-        title: `Cache hit rate ${diff > 0 ? '▲' : '▼'} ${Math.abs(diff).toFixed(0)}% this week`,
-        description: diff > 0
-          ? `Improved from ${prev.toFixed(0)}% → ${recent.toFixed(0)}%. Consistent system prompts and sustained sessions are paying off. Keep it up.`
-          : `Dropped from ${prev.toFixed(0)}% → ${recent.toFixed(0)}%. Common causes: more new sessions started, changed system prompts, or working across more projects simultaneously.`,
-        impact: diff < -10 ? 'high' : 'medium',
-      });
-    }
-
-    // ── 3. Cost trend ──────────────────────────────────────────
-    const cost7 = (subset) => subset.reduce((a,d) => a + d.cost, 0);
-    const rCost = cost7(days.slice(-7));
-    const pCost = cost7(days.slice(-14,-7));
-    if (pCost > 0) {
-      const chg = (rCost - pCost) / pCost * 100;
-      if (Math.abs(chg) > 25) {
-        insights.push({
-          icon: chg > 0 ? '💸' : '💰',
-          title: `Cost ${chg > 0 ? '▲' : '▼'} ${Math.abs(chg).toFixed(0)}% this week`,
-          description: chg > 0
-            ? `$${rCost.toFixed(2)} last 7 days vs $${pCost.toFixed(2)} prior week. Check the Daily Cost table for the spike day.`
-            : `Down to $${rCost.toFixed(2)} from $${pCost.toFixed(2)} — your efficiency is improving.`,
-          impact: chg > 50 ? 'high' : 'medium',
-        });
-      }
-    }
-  }
-
-  // ── 4. Tool usage patterns ─────────────────────────────────
-  const totalTools = tools.reduce((a,t) => a + t.count, 0);
-  if (totalTools > 100) {
-    const bash  = toolMap['Bash']  || 0;
-    const read  = toolMap['Read']  || 0;
-    const edit  = toolMap['Edit']  || 0;
-    const agent = toolMap['Agent'] || 0;
-
-    if (bash > totalTools * 0.4) {
-      insights.push({
-        icon: '🔧',
-        title: `Bash is ${Math.round(bash/totalTools*100)}% of all tool calls`,
-        description: `Heavy shell usage detected (${fmt(bash)} Bash calls). For file reads/writes, prefer the Read/Write/Edit tools — they're diff-visible, XSS-safe, and skip shell parsing overhead. Batch related commands with && to reduce round-trips.`,
-        impact: 'medium',
-      });
-    }
-
-    if (read > edit * 6 && read > 200) {
-      insights.push({
-        icon: '🔍',
-        title: `${Math.round(read/Math.max(edit,1))}× more file reads than edits`,
-        description: `${fmt(read)} reads vs ${fmt(edit)} edits. High read:edit ratios often mean repeated lookups of the same files. Ask Claude to note file contents it has already read within the session to reduce redundant reads.`,
-        impact: 'low',
-      });
-    }
-
-    if (agent > 30) {
-      insights.push({
-        icon: '🤖',
-        title: `Strong subagent usage: ${fmt(agent)} Agent calls`,
-        description: `You use subagents to parallelize work and isolate context — a healthy pattern. Reminder: each subagent prompt must be self-contained. Subagents have no memory of the parent conversation.`,
-        impact: 'positive',
-      });
-    }
-  }
-
-  // ── 5. Overall cache health ────────────────────────────────
-  const totalAllInput = (totals.input||0) + (totals.cacheRead||0) + (totals.cacheCreate||0);
-  const overallHit = totalAllInput > 0 ? totals.cacheRead / totalAllInput * 100 : 0;
-
-  if (totalAllInput > 50000) {
-    if (overallHit < 30) {
-      insights.push({
-        icon: '⚠️',
-        title: `Low cache hit rate: ${overallHit.toFixed(0)}%`,
-        description: `Most input tokens are re-processed every turn. To improve: add a persistent system prompt to your Claude projects, avoid clearing context mid-session, and prefer continuing existing sessions over starting new ones.`,
-        impact: 'high',
-      });
-    } else if (overallHit > 70) {
-      insights.push({
-        icon: '✨',
-        title: `Excellent cache efficiency: ${overallHit.toFixed(0)}% hit rate`,
-        description: `Your token caching is working well. You're consistently reusing context across turns. Keep using stable system prompts and maintaining long-running sessions — this is what keeps costs low.`,
-        impact: 'positive',
-      });
-    }
-  }
-
-  // ── 6. Project spread ──────────────────────────────────────
-  if (projects.length > 5) {
-    const totalMsg = projects.reduce((a,p) => a + p.messages, 0);
-    const top3Msg  = projects.slice(0,3).reduce((a,p) => a + p.messages, 0);
-    const conc     = totalMsg > 0 ? top3Msg / totalMsg * 100 : 0;
-    if (conc < 60) {
-      insights.push({
-        icon: '📂',
-        title: `Activity spread across ${projects.length} projects`,
-        description: `Your top 3 projects account for only ${conc.toFixed(0)}% of messages. Each distinct project starts with a cold cache. Concentrating work in fewer projects can significantly improve cache efficiency and reduce costs.`,
-        impact: 'low',
-      });
-    }
-  }
-
-  // ── 7. Enough activity, give a model efficiency tip ────────
-  const totalOutput = totals.output || 0;
-  const totalInput  = totals.input  || 0;
-  if (totalOutput > 0 && totalInput > 0 && totalOutput / totalInput > 0.5) {
-    insights.push({
-      icon: '💡',
-      title: `High output-to-input ratio (${(totalOutput/totalInput*100).toFixed(0)}%)`,
-      description: `Your output tokens are a large fraction of input. If Claude is generating extensive boilerplate or verbose explanations you don't need, instruct it to be more concise. Output tokens are the most expensive component.`,
-      impact: 'medium',
-    });
-  }
-
-  // Default message
-  if (insights.length === 0) {
-    insights.push({
-      icon: '📊',
-      title: 'Building your usage profile…',
-      description: 'Keep using Claude Code. After more activity, Claude Lens will analyze your patterns and surface personalized efficiency recommendations.',
-      impact: 'info',
-    });
-  }
-
-  const order = { high:0, medium:1, low:2, info:3, positive:4 };
-  insights.sort((a,b) => (order[a.impact]??5) - (order[b.impact]??5));
-  return insights;
-}
-
-// ═══════════════════════════════════════════════════════════
-// Export Utilities
-// ═══════════════════════════════════════════════════════════
-function dlCSV(filename, rows) {
-  const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = filename; a.click();
-  URL.revokeObjectURL(url);
-}
-
-function exportDailyCostsCSV() {
-  const { costData } = appData;
-  const rows = ['Date,Messages,Tool Calls,Sessions,Cache Read,Cache Write,Hit Rate %,Est Cost,Saved'];
-  for (const d of (costData.days||[])) {
-    const allInput = d.input + d.cacheRead + d.cacheCreate;
-    const hr   = allInput > 0 ? d.cacheRead / allInput * 100 : 0;
-    const rates = costData.rates || { input:5/1e6, output:25/1e6 };
-    const noCost= allInput * rates.input + d.output * rates.output;
-    const sv   = Math.max(0, noCost - d.cost);
-    rows.push(`${d.date},${d.messages},${d.toolCalls},${d.sessions},${d.cacheRead},${d.cacheCreate},${hr.toFixed(1)},${d.cost.toFixed(4)},${sv.toFixed(4)}`);
-  }
-  dlCSV('claude-lens-daily-costs.csv', rows);
-}
-
-function exportToolsCSV() {
-  const rows = ['Tool,Count'];
-  for (const t of (appData.toolData.tools||[])) rows.push(`${t.tool},${t.count}`);
-  dlCSV('claude-lens-tool-calls.csv', rows);
-}
-
-function exportProjectsCSV() {
-  const rows = ['Project,Short Name,Messages,Sessions,First Seen,Last Seen'];
-  for (const p of appData.projects) {
-    rows.push(`"${p.name}","${p.shortName}",${p.messages},${p.sessions},"${p.firstSeen||''}","${p.lastSeen||''}"`);
-  }
-  dlCSV('claude-lens-projects.csv', rows);
-}
-
-function exportToolCalls() {
-  const { toolName, calls } = window._lastToolCalls || {};
-  if (!toolName || !calls) return;
-  const lines = [`${toolName} — ${calls.length} calls`, '='.repeat(50), ''];
-  for (const c of calls) {
-    const proj = shortProj(c.project||'');
-    const time = fmtDT(c.timestamp);
-    if (toolName==='Bash') { if (c.description) lines.push(c.description); lines.push(`$ ${c.command}`); }
-    else if (['Read','Edit','Write'].includes(toolName)) { lines.push(c.file_path); }
-    else if (toolName==='Grep') { lines.push(`/${c.pattern}/`); if (c.path) lines.push(`  path: ${c.path}`); if (c.glob) lines.push(`  glob: ${c.glob}`); }
-    else if (toolName==='Glob') { lines.push(c.pattern); if (c.path) lines.push(`  path: ${c.path}`); }
-    else if (toolName==='Agent') { lines.push(c.description); if (c.subagent_type) lines.push(`  type: ${c.subagent_type}`); }
-    else { lines.push(c.input||''); }
-    lines.push(`  [${time} · ${proj}]`, '');
-  }
-  const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = `${toolName.toLowerCase()}-calls.txt`; a.click();
-  URL.revokeObjectURL(url);
-}
-
-// ═══════════════════════════════════════════════════════════
-// Global Search — filters history section
-// ═══════════════════════════════════════════════════════════
-document.getElementById('global-search').addEventListener('input', (e) => {
-  const q = e.target.value.toLowerCase().trim();
-  if (!q) {
-    historyFilter = '';
-  } else {
-    historyFilter = q;
-    // Scroll to history section
-    document.querySelector('.section:last-child').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-  // Also sync the local history search input
-  document.getElementById('history-search').value = historyFilter;
-  renderHistoryRows();
+  renderHistRows();
 });
 
-// ═══════════════════════════════════════════════════════════
-// Init
-// ═══════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
+   EXPORTS
+═══════════════════════════════════════════════════════════ */
+function dlCSV(name, rows) {
+  const blob = new Blob([rows.join('\n')],{type:'text/csv'});
+  const a = Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:name});
+  a.click(); URL.revokeObjectURL(a.href);
+}
+function exportDailyCostsCSV() {
+  const { costData } = appData;
+  const ri=costData.rates?.input||5e-6, ro=costData.rates?.output||25e-6;
+  const rows=['Date,Messages,Tool Calls,Sessions,Cache Read,Cache Write,Hit Rate %,Cost,Saved'];
+  for (const d of costData.days||[]) {
+    const ai=d.input+d.cacheRead+d.cacheCreate, hr=ai>0?d.cacheRead/ai*100:0;
+    const sv=Math.max(0,ai*ri+d.output*ro-d.cost);
+    rows.push(`${d.date},${d.messages},${d.toolCalls},${d.sessions},${d.cacheRead},${d.cacheCreate},${hr.toFixed(1)},${d.cost.toFixed(4)},${sv.toFixed(4)}`);
+  }
+  dlCSV('claude-lens-daily.csv',rows);
+}
+function exportToolsCSV() {
+  const rows=['Tool,Count'];
+  for (const t of appData.toolData.tools||[]) rows.push(`${t.tool},${t.count}`);
+  dlCSV('claude-lens-tools.csv',rows);
+}
+function exportProjectsCSV() {
+  const rows=['Project,Short Name,Messages,Sessions,First Seen,Last Seen'];
+  for (const p of appData.projects) rows.push(`"${p.name}","${p.shortName}",${p.messages},${p.sessions},"${p.firstSeen||''}","${p.lastSeen||''}"`);
+  dlCSV('claude-lens-projects.csv',rows);
+}
+function exportToolCalls() {
+  const { toolName, calls } = window._lastToolCalls||{};
+  if (!toolName||!calls) return;
+  const lines=[`${toolName} — ${calls.length} calls`,'='.repeat(50),''];
+  for (const c of calls) {
+    if (toolName==='Bash') { if(c.description)lines.push(c.description); lines.push(`$ ${c.command}`); }
+    else if (['Read','Edit','Write'].includes(toolName)) lines.push(c.file_path);
+    else if (toolName==='Grep') { lines.push(`/${c.pattern}/`); if(c.path)lines.push(`  path: ${c.path}`); if(c.glob)lines.push(`  glob: ${c.glob}`); }
+    else if (toolName==='Glob') { lines.push(c.pattern); if(c.path)lines.push(`  path: ${c.path}`); }
+    else if (toolName==='Agent') { lines.push(c.description); if(c.subagent_type)lines.push(`  type: ${c.subagent_type}`); }
+    else lines.push(c.input||'');
+    lines.push(`  [${fmtDT(c.timestamp)} · ${shortProj(c.project||'')}]`,'');
+  }
+  const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/plain'})),download:`${toolName.toLowerCase()}-calls.txt`});
+  a.click();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════════ */
 initSSE();
 load();
 </script>
