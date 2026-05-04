@@ -3,785 +3,1753 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Claude Code Usage Dashboard</title>
+  <title>Claude Lens — Usage Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    /* ── Design Tokens ────────────────────────────────────────── */
+    :root {
+      --bg:          #1c1929;
+      --bg-card:     #251f35;
+      --bg-hover:    #2e2742;
+      --bg-code:     #1a1624;
+      --border:      #3a3150;
+      --border-sub:  #2e2742;
+      --text:        #ede8f7;
+      --text-muted:  #9587b8;
+      --text-dim:    #574d72;
+      --accent:      #cc7a54;
+      --accent-glow: rgba(204,122,84,.15);
+      --green:       #4dba9c;
+      --blue:        #6baaf0;
+      --purple:      #b08def;
+      --amber:       #d4974e;
+      --red:         #e06878;
+      --mono:        'SF Mono','Cascadia Code','Fira Code',Consolas,monospace;
+      --sans:        'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+      --radius:      10px;
+      --radius-sm:   6px;
+    }
+
+    /* ── Reset & Base ─────────────────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
-      font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
-      background: #0d1117;
-      color: #c9d1d9;
-      padding: 24px;
-      line-height: 1.5;
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+      min-height: 100vh;
     }
-    h1 {
-      font-size: 1.4rem;
-      color: #58a6ff;
-      margin-bottom: 24px;
-      border-bottom: 1px solid #21262d;
-      padding-bottom: 12px;
+    a { color: var(--accent); text-decoration: none; }
+    button { font-family: var(--sans); cursor: pointer; }
+    code, .mono { font-family: var(--mono); }
+
+    /* ── Layout ───────────────────────────────────────────────── */
+    .page { max-width: 1200px; margin: 0 auto; padding: 0 24px 48px; }
+    .section { margin-bottom: 36px; }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
     }
-    h2 {
-      font-size: 1rem;
-      color: #8b949e;
+    .section-header h2 {
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-muted);
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 12px;
+      letter-spacing: .07em;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+
+    /* ── Header ───────────────────────────────────────────────── */
+    .site-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px 0 24px;
+      border-bottom: 1px solid var(--border-sub);
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
       gap: 12px;
-      margin-bottom: 32px;
     }
-    .card {
-      background: #161b22;
-      border: 1px solid #21262d;
+    .claude-mark {
+      width: 34px;
+      height: 34px;
+      background: var(--accent);
       border-radius: 8px;
-      padding: 16px;
-      min-width: 0;
-    }
-    .card .label {
-      font-size: 0.75rem;
-      color: #8b949e;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .card .value {
-      font-size: 1.6rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-weight: 700;
-      color: #f0f6fc;
-      margin-top: 4px;
+      font-size: .9rem;
+      color: #fff;
+      flex-shrink: 0;
+      letter-spacing: -.02em;
+    }
+    .header-title { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+    .header-sub   { font-size: .72rem; color: var(--text-dim); margin-top: 1px; }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-left: auto;
+      flex-wrap: wrap;
+    }
+    .live-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: .72rem;
+      color: var(--text-dim);
+    }
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      transition: background .3s;
+    }
+    .live-dot.connected   { background: var(--green); }
+    .live-dot.refreshing  { background: var(--amber); animation: pulse .6s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+
+    .search-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .search-wrap .search-icon {
+      position: absolute;
+      left: 10px;
+      color: var(--text-dim);
+      font-size: .85rem;
+      pointer-events: none;
+    }
+    #global-search {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: .8rem;
+      padding: 7px 12px 7px 30px;
+      width: 240px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    #global-search:focus { border-color: var(--accent); }
+    #global-search::placeholder { color: var(--text-dim); }
+
+    .btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: .75rem;
+      padding: 6px 12px;
+      transition: all .15s;
+    }
+    .btn:hover { background: var(--bg-hover); color: var(--text); border-color: var(--accent); }
+    .btn-accent {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .btn-accent:hover { background: #d98a64; border-color: #d98a64; color: #fff; }
+    .btn-sm { padding: 4px 10px; font-size: .7rem; }
+
+    /* ── Explainer Banner ─────────────────────────────────────── */
+    .explainer {
+      background: var(--bg-card);
+      border: 1px solid var(--border-sub);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--radius);
+      margin-bottom: 28px;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
     }
-    .card .sub {
-      font-size: 0.7rem;
-      color: #484f58;
-      margin-top: 2px;
+    .explainer-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: .8rem;
+      font-weight: 600;
+      padding: 12px 16px;
+      text-align: left;
+      gap: 8px;
     }
+    .explainer-toggle:hover { color: var(--text); }
+    .explainer-toggle .chevron { transition: transform .2s; font-size: .7rem; }
+    .explainer-toggle.open .chevron { transform: rotate(180deg); }
+    .explainer-body {
+      display: none;
+      padding: 4px 16px 16px;
+    }
+    .explainer-body.open { display: block; }
+    .explainer-flow {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .flow-item {
+      background: var(--bg);
+      border: 1px solid var(--border-sub);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+    }
+    .flow-source {
+      font-family: var(--mono);
+      font-size: .72rem;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    .flow-arrow { color: var(--text-dim); margin: 0 4px; }
+    .flow-desc { font-size: .72rem; color: var(--text-muted); }
+    .flow-feeds { font-size: .68rem; color: var(--text-dim); margin-top: 4px; }
+    .flow-feeds span {
+      display: inline-block;
+      background: var(--bg-hover);
+      border-radius: 3px;
+      padding: 1px 5px;
+      margin: 2px 2px 0 0;
+      color: var(--purple);
+    }
+    .explainer-note {
+      font-size: .72rem;
+      color: var(--text-dim);
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border-sub);
+    }
+
+    /* ── Tooltip System ───────────────────────────────────────── */
+    .tip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--bg-hover);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-size: .65rem;
+      font-weight: 700;
+      cursor: help;
+      flex-shrink: 0;
+      vertical-align: middle;
+      position: relative;
+    }
+    .tip:hover { border-color: var(--accent); color: var(--accent); }
+    #tooltip-popup {
+      position: fixed;
+      z-index: 999;
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: .75rem;
+      line-height: 1.5;
+      max-width: 300px;
+      padding: 8px 12px;
+      pointer-events: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,.4);
+      display: none;
+    }
+
+    /* ── Insight Cards ────────────────────────────────────────── */
+    .insights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+    }
+    .insight-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-sub);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      transition: border-color .15s;
+    }
+    .insight-card:hover { border-color: var(--border); }
+    .insight-card.high    { border-left: 3px solid var(--red); }
+    .insight-card.medium  { border-left: 3px solid var(--amber); }
+    .insight-card.positive{ border-left: 3px solid var(--green); }
+    .insight-card.info,
+    .insight-card.low     { border-left: 3px solid var(--blue); }
+    .insight-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+    .insight-body {}
+    .insight-title {
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .insight-desc { font-size: .75rem; color: var(--text-muted); line-height: 1.5; }
+
+    /* ── Summary Panels ───────────────────────────────────────── */
     .summary-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 16px;
-      margin-bottom: 32px;
+      margin-bottom: 4px;
     }
+    @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
     .summary-panel {
-      background: #161b22;
-      border: 1px solid #21262d;
-      border-radius: 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-sub);
+      border-radius: var(--radius);
       padding: 20px;
     }
-    .summary-panel.today {
-      border-color: #388bfd;
-      border-width: 2px;
-    }
-    .summary-panel .panel-header {
+    .summary-panel.today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-glow); }
+    .panel-header {
       display: flex;
       align-items: center;
       gap: 8px;
       margin-bottom: 16px;
     }
-    .summary-panel .panel-badge {
-      font-size: 0.65rem;
+    .panel-badge {
+      font-size: .65rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: .07em;
       padding: 3px 8px;
       border-radius: 4px;
     }
-    .summary-panel.today .panel-badge {
-      background: #388bfd;
-      color: #fff;
-    }
-    .summary-panel.alltime .panel-badge {
-      background: #30363d;
-      color: #8b949e;
-    }
-    .summary-panel .panel-date {
-      font-size: 0.75rem;
-      color: #484f58;
-    }
+    .today .panel-badge { background: var(--accent); color: #fff; }
+    .alltime .panel-badge { background: var(--bg-hover); color: var(--text-muted); }
+    .panel-date { font-size: .72rem; color: var(--text-dim); }
     .metric-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
+      gap: 10px;
     }
+    @media (max-width: 480px) { .metric-grid { grid-template-columns: repeat(2, 1fr); } }
     .metric {
       padding: 10px;
-      border-radius: 6px;
-      background: #0d1117;
+      border-radius: var(--radius-sm);
+      background: var(--bg);
     }
-    .metric .metric-label {
-      font-size: 0.65rem;
-      color: #8b949e;
+    .metric-label {
+      font-size: .62rem;
+      color: var(--text-dim);
       text-transform: uppercase;
-      letter-spacing: 0.04em;
+      letter-spacing: .05em;
       margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
-    .metric .metric-value {
-      font-size: 1.3rem;
+    .metric-value {
+      font-size: 1.25rem;
       font-weight: 700;
-      color: #f0f6fc;
+      color: var(--text);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      font-family: var(--mono);
     }
-    .metric .metric-value.green { color: #7ee787; }
-    .metric .metric-value.blue { color: #79c0ff; }
-    .metric .metric-value.amber { color: #d29922; }
-    .metric .metric-value.pink { color: #f778ba; }
-    .metric .metric-sub {
-      font-size: 0.6rem;
-      color: #484f58;
-      margin-top: 2px;
-    }
+    .metric-value.green  { color: var(--green); }
+    .metric-value.blue   { color: var(--blue); }
+    .metric-value.amber  { color: var(--amber); }
+    .metric-value.red    { color: var(--red); }
+    .metric-value.purple { color: var(--purple); }
+    .metric-sub { font-size: .6rem; color: var(--text-dim); margin-top: 2px; }
     .summary-divider {
       border: none;
-      border-top: 1px solid #21262d;
+      border-top: 1px solid var(--border-sub);
       margin: 14px 0;
     }
-    .section {
-      margin-bottom: 32px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.8rem;
-    }
-    th {
-      text-align: left;
-      color: #8b949e;
-      font-weight: 600;
-      padding: 8px 12px;
-      border-bottom: 1px solid #21262d;
-      text-transform: uppercase;
-      font-size: 0.7rem;
-      letter-spacing: 0.05em;
-    }
-    td {
-      padding: 6px 12px;
-      border-bottom: 1px solid #161b22;
-      vertical-align: top;
-    }
-    tr:hover td {
-      background: #161b22;
-    }
-    .prompt-text {
-      max-width: 500px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      color: #c9d1d9;
-    }
-    .project-badge {
-      display: inline-block;
-      background: #1f2937;
-      color: #79c0ff;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 0.7rem;
-    }
-    .bar-container {
+    .top-models { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-sub); }
+    .model-row {
       display: flex;
       align-items: center;
       gap: 8px;
+      padding: 3px 0;
+      font-size: .72rem;
     }
+    .model-rank { color: var(--text-dim); min-width: 14px; }
+    .model-name { color: var(--purple); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .model-count { color: var(--text-dim); white-space: nowrap; }
+
+    /* ── Cards (Cache Performance) ────────────────────────────── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+    }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-sub);
+      border-radius: var(--radius);
+      padding: 16px;
+      min-width: 0;
+    }
+    .card .label {
+      font-size: .68rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .card .value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+      font-family: var(--mono);
+    }
+    .card .sub { font-size: .68rem; color: var(--text-dim); margin-top: 3px; }
+
+    /* ── Tables (shared) ──────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    th {
+      text-align: left;
+      color: var(--text-dim);
+      font-weight: 600;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      font-size: .67rem;
+      letter-spacing: .06em;
+      white-space: nowrap;
+    }
+    td { padding: 7px 12px; border-bottom: 1px solid var(--border-sub); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: var(--bg-hover); }
+    .val { text-align: right; font-family: var(--mono); font-size: .78rem; }
+    .total-row td { font-weight: 700; border-top: 2px solid var(--border); color: var(--text); }
+
+    /* ── Bar Visuals ──────────────────────────────────────────── */
+    .bar-wrap { display: flex; align-items: center; gap: 8px; }
     .bar {
-      height: 16px;
-      background: #388bfd;
+      height: 14px;
+      background: var(--accent);
       border-radius: 3px;
       min-width: 2px;
+      opacity: .75;
     }
-    .bar-count {
-      font-size: 0.75rem;
-      color: #8b949e;
-      min-width: 40px;
-    }
-    .tool-name {
-      min-width: 100px;
-      font-weight: 600;
-      color: #d2a8ff;
-    }
-    .loading {
-      color: #484f58;
-      font-style: italic;
-    }
-    .tabs {
-      display: flex;
-      gap: 4px;
-      margin-bottom: 16px;
-    }
-    .tab {
-      padding: 6px 14px;
-      background: #161b22;
-      border: 1px solid #21262d;
-      border-radius: 6px;
-      color: #8b949e;
-      cursor: pointer;
-      font-size: 0.75rem;
-      font-family: inherit;
-    }
-    .tab.active {
-      background: #388bfd;
-      color: #fff;
-      border-color: #388bfd;
-    }
-    #history-table-body tr { cursor: default; }
-    .session-id {
-      font-size: 0.65rem;
-      color: #484f58;
-    }
-    .cost-total td { font-weight: 700; border-top: 2px solid #30363d; color: #f0f6fc; }
-    .cost-value { text-align: right; font-variant-numeric: tabular-nums; }
-    .cost-bar {
-      height: 12px;
-      background: #da3633;
-      border-radius: 2px;
+    .bar.cost { background: var(--red); }
+    .bar-lbl { font-size: .73rem; color: var(--text-muted); min-width: 38px; font-family: var(--mono); }
+
+    /* ── Project Badge ────────────────────────────────────────── */
+    .badge {
       display: inline-block;
-      vertical-align: middle;
+      background: var(--bg-hover);
+      color: var(--blue);
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: .68rem;
+      font-weight: 500;
     }
-    .cost-note {
-      font-size: 0.7rem;
-      color: #484f58;
-      margin-top: 8px;
-    }
+    .session-id { font-size: .65rem; color: var(--text-dim); font-family: var(--mono); }
+
+    /* ── Tool Section ─────────────────────────────────────────── */
     .tool-row { cursor: pointer; }
-    .tool-row:hover .tool-name { color: #e2c5ff; }
-    .tool-row:hover .bar { background: #58a6ff; }
-    .tool-detail-panel {
-      background: #161b22;
-      border: 1px solid #21262d;
-      border-radius: 8px;
+    .tool-row:hover .tool-name { color: var(--purple); }
+    .tool-row:hover .bar { opacity: 1; }
+    .tool-name {
+      font-weight: 600;
+      color: var(--purple);
+      font-size: .8rem;
+      min-width: 90px;
+    }
+    .tool-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .tool-controls label { font-size: .75rem; color: var(--text-muted); }
+    .tool-controls select {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: .75rem;
+      padding: 5px 8px;
+      font-family: var(--sans);
+      outline: none;
+    }
+
+    /* ── Tool Detail Panel ────────────────────────────────────── */
+    .detail-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-sub);
+      border-radius: var(--radius);
       margin-top: 12px;
       padding: 16px;
-      max-height: 420px;
+      max-height: 440px;
       overflow-y: auto;
     }
-    .tool-detail-panel h3 {
-      font-size: 0.85rem;
-      color: #d2a8ff;
-      margin-bottom: 12px;
+    .detail-panel-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 12px;
     }
-    .tool-detail-panel .close-btn {
-      background: none;
-      border: 1px solid #30363d;
-      color: #8b949e;
-      border-radius: 4px;
-      padding: 2px 8px;
-      cursor: pointer;
-      font-family: inherit;
-      font-size: 0.7rem;
+    .detail-panel-title {
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--purple);
     }
-    .tool-detail-panel .close-btn:hover { color: #f0f6fc; border-color: #484f58; }
+    .detail-panel-actions { display: flex; gap: 6px; }
     .detail-row {
-      padding: 6px 0;
-      border-bottom: 1px solid #21262d;
-      font-size: 0.75rem;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border-sub);
+      font-size: .75rem;
     }
     .detail-row:last-child { border-bottom: none; }
-    .detail-cmd {
-      color: #7ee787;
-      font-size: 0.75rem;
-      word-break: break-all;
+    .detail-cmd  { color: var(--green); word-break: break-all; font-family: var(--mono); }
+    .detail-desc { color: var(--text-muted); }
+    .detail-path { color: var(--blue); word-break: break-all; font-family: var(--mono); }
+    .detail-meta { color: var(--text-dim); font-size: .65rem; margin-top: 3px; }
+
+    /* ── History ──────────────────────────────────────────────── */
+    .history-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
     }
-    .detail-desc {
-      color: #8b949e;
-      font-size: 0.7rem;
+    .tabs { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; }
+    .tab {
+      padding: 5px 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-sub);
+      border-radius: 20px;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: .72rem;
+      font-family: var(--sans);
+      transition: all .15s;
     }
-    .detail-path {
-      color: #79c0ff;
-      font-size: 0.75rem;
-      word-break: break-all;
+    .tab:hover { background: var(--bg-hover); color: var(--text); }
+    .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    #history-search {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: .78rem;
+      padding: 6px 10px;
+      width: 200px;
+      outline: none;
     }
-    .detail-meta {
-      color: #484f58;
-      font-size: 0.65rem;
+    #history-search:focus { border-color: var(--accent); }
+    .prompt-text {
+      max-width: 460px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text);
+    }
+    .history-row { cursor: pointer; }
+    .history-row:hover .prompt-text { color: var(--accent); }
+    .thread-indicator {
+      font-size: .6rem;
+      color: var(--text-dim);
+      margin-left: 4px;
+    }
+    .history-row.expanded .thread-indicator { color: var(--accent); }
+
+    /* ── Session Thread ───────────────────────────────────────── */
+    .session-thread-row td {
+      padding: 0 !important;
+      background: var(--bg) !important;
+      border-bottom: 1px solid var(--border) !important;
+    }
+    .session-thread {
+      padding: 12px 16px 16px;
+    }
+    .thread-msg {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .thread-msg:last-child { margin-bottom: 0; }
+    .thread-avatar {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .6rem;
+      font-weight: 700;
       margin-top: 2px;
     }
+    .thread-avatar.user      { background: var(--blue); color: var(--bg); }
+    .thread-avatar.assistant { background: var(--accent); color: #fff; }
+    .thread-content { flex: 1; min-width: 0; }
+    .thread-role {
+      font-size: .65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--text-dim);
+      margin-bottom: 3px;
+    }
+    .thread-text {
+      font-size: .78rem;
+      color: var(--text-muted);
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.55;
+      max-height: 120px;
+      overflow: hidden;
+      position: relative;
+    }
+    .thread-text.expanded { max-height: none; }
+    .thread-text::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 32px;
+      background: linear-gradient(transparent, var(--bg));
+    }
+    .thread-text.expanded::after { display: none; }
+    .thread-tools {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 5px;
+    }
+    .thread-tool-chip {
+      background: var(--bg-card);
+      border: 1px solid var(--border-sub);
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-size: .65rem;
+      color: var(--purple);
+      font-family: var(--mono);
+    }
+    .thread-meta { font-size: .62rem; color: var(--text-dim); margin-top: 4px; }
+
+    /* ── Cost table specific ──────────────────────────────────── */
+    .hit-green { color: var(--green); }
+    .hit-amber { color: var(--amber); }
+    .hit-red   { color: var(--red); }
+    .cost-note {
+      font-size: .68rem;
+      color: var(--text-dim);
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-sub);
+    }
+
+    /* ── Loading / Empty ──────────────────────────────────────── */
+    .loading { color: var(--text-dim); font-size: .8rem; font-style: italic; padding: 8px 0; }
+    .empty   { color: var(--text-dim); font-size: .8rem; padding: 16px 0; }
+
+    /* ── Scrollbar ────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
   </style>
 </head>
 <body>
-  <h1>Claude Code Usage Dashboard</h1>
+<div class="page">
 
-  <div id="summary-section" class="section">
-    <div class="loading">Loading...</div>
-  </div>
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="header-brand">
+      <div class="claude-mark">CL</div>
+      <div>
+        <div class="header-title">Claude Lens</div>
+        <div class="header-sub">Usage Analytics Dashboard</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="live-indicator">
+        <div class="live-dot" id="live-dot"></div>
+        <span id="live-text">Connecting…</span>
+      </div>
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="global-search" placeholder="Search history, projects…" autocomplete="off">
+      </div>
+      <button class="btn" onclick="load()">↺ Refresh</button>
+    </div>
+  </header>
 
-  <div class="section">
-    <h2>Cache Performance</h2>
-    <div id="cache-cards" class="cards">
-      <div class="card"><div class="label">Loading...</div></div>
+  <!-- ── How This Works ─────────────────────────────────────── -->
+  <div class="explainer" id="explainer">
+    <button class="explainer-toggle" id="explainer-toggle" onclick="toggleExplainer()">
+      <span>How Claude Lens works — data flow &amp; connections</span>
+      <span class="chevron">▾</span>
+    </button>
+    <div class="explainer-body" id="explainer-body">
+      <div style="font-size:.77rem;color:var(--text-muted);margin-bottom:4px">
+        Claude Code writes structured data to <code>~/.claude/</code> as you work. Claude Lens reads those files locally and aggregates them into the sections below. Nothing leaves your machine.
+      </div>
+      <div class="explainer-flow">
+        <div class="flow-item">
+          <div class="flow-source">history.jsonl</div>
+          <div class="flow-desc">Every prompt you send — timestamp, project, session ID, display text.</div>
+          <div class="flow-feeds">Feeds: <span>Summary</span><span>Prompt History</span><span>Patterns</span></div>
+        </div>
+        <div class="flow-item">
+          <div class="flow-source">projects/*/[id].jsonl</div>
+          <div class="flow-desc">Full conversation logs — assistant messages with token usage, tool calls, and model info per turn.</div>
+          <div class="flow-feeds">Feeds: <span>Daily Costs</span><span>Tool Calls</span><span>Session Threads</span><span>Patterns</span></div>
+        </div>
+        <div class="flow-item">
+          <div class="flow-source">stats-cache.json</div>
+          <div class="flow-desc">Claude Code's own aggregated counters — updated automatically after each session.</div>
+          <div class="flow-feeds">Feeds: <span>Summary (supplementary)</span></div>
+        </div>
+        <div class="flow-item">
+          <div class="flow-source">sessions/*.json</div>
+          <div class="flow-desc">Session metadata — IDs, project links, creation timestamps.</div>
+          <div class="flow-feeds">Feeds: <span>Session Thread View</span></div>
+        </div>
+      </div>
+      <div class="explainer-note">
+        <strong>How sections connect:</strong>
+        The <em>Summary</em> totals come from aggregating all project JSONL files by date — the same data that drives <em>Daily Costs</em>.
+        <em>Cache Hit Rate</em> is computed as <code>cacheRead ÷ (input + cacheRead + cacheCreate)</code>.
+        <em>Pattern Insights</em> analyze trends across all of this data to surface personalized recommendations.
+        <em>Session Threads</em> read the same JSONL files as Daily Costs but filter by session ID to show conversation turns.
+      </div>
     </div>
   </div>
 
+  <!-- ── Pattern Insights ────────────────────────────────────── -->
   <div class="section">
-    <h2>Daily Cost &amp; Cache</h2>
-    <div id="daily-costs">
-      <div class="loading">Loading...</div>
+    <div class="section-header">
+      <h2>
+        Pattern Insights
+        <span class="tip" data-tooltip="Automatically detected patterns in your Claude Code usage. Analyzes cache trends, tool habits, cost trajectories, and peak activity times to surface personalized recommendations.">?</span>
+      </h2>
+    </div>
+    <div class="insights-grid" id="insights-grid">
+      <div class="loading">Analyzing patterns…</div>
     </div>
   </div>
 
+  <!-- ── Summary ────────────────────────────────────────────── -->
   <div class="section">
-    <h2>Tool Calls</h2>
-    <div id="tool-calls">
-      <div class="loading">Loading...</div>
+    <div class="section-header">
+      <h2>
+        Summary
+        <span class="tip" data-tooltip="Today's activity vs all-time totals. 'Today' is the current calendar day in your local timezone. Both panels are computed from the same project JSONL files — Today just filters to today's date.">?</span>
+      </h2>
+    </div>
+    <div id="summary-grid" class="summary-grid">
+      <div class="loading">Loading…</div>
     </div>
   </div>
 
+  <!-- ── Cache Performance ───────────────────────────────────── -->
   <div class="section">
-    <h2>Project Activity</h2>
-    <table>
-      <thead>
-        <tr><th>Project</th><th>Messages</th><th>Sessions</th><th>Last Active</th></tr>
-      </thead>
-      <tbody id="projects-body">
-        <tr><td colspan="4" class="loading">Loading...</td></tr>
-      </tbody>
-    </table>
+    <div class="section-header">
+      <h2>
+        Cache Performance
+        <span class="tip" data-tooltip="Anthropic's prompt cache stores your input context server-side. Cache reads cost ~90% less than fresh input. These 4 cards show how effectively your usage benefits from caching.">?</span>
+      </h2>
+    </div>
+    <div class="cards" id="cache-cards">
+      <div class="card"><div class="label">Loading…</div></div>
+    </div>
   </div>
 
+  <!-- ── Daily Costs ─────────────────────────────────────────── -->
   <div class="section">
-    <h2>Prompt History</h2>
-    <div class="tabs" id="history-tabs"></div>
-    <table>
-      <thead>
-        <tr><th>Time</th><th>Project</th><th>Prompt</th><th>Session</th></tr>
-      </thead>
-      <tbody id="history-table-body">
-        <tr><td colspan="4" class="loading">Loading...</td></tr>
-      </tbody>
-    </table>
+    <div class="section-header">
+      <h2>
+        Daily Cost &amp; Cache
+        <span class="tip" data-tooltip="Token usage and costs broken down by calendar day. Cost is estimated from your configured rates. 'Saved' shows money avoided by using cache reads instead of fresh input tokens. The bar visualizes each day's cost relative to your most expensive day.">?</span>
+      </h2>
+      <button class="btn btn-sm" onclick="exportDailyCostsCSV()">↓ CSV</button>
+    </div>
+    <div id="daily-costs"><div class="loading">Loading…</div></div>
   </div>
 
-  <script>
-    const fmt = (n) => n != null ? n.toLocaleString() : '—';
-    const fmtDate = (ts) => {
-      if (!ts) return '—';
-      const d = new Date(ts);
-      return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  <!-- ── Tool Calls ──────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-header">
+      <h2>
+        Tool Calls
+        <span class="tip" data-tooltip="Every tool Claude invoked across all projects, sorted by frequency. Click a row to inspect the 200 most recent individual calls for that tool. Use the project filter to narrow to a specific codebase.">?</span>
+      </h2>
+      <button class="btn btn-sm" onclick="exportToolsCSV()">↓ CSV</button>
+    </div>
+    <div id="tool-calls"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- ── Project Activity ────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-header">
+      <h2>
+        Project Activity
+        <span class="tip" data-tooltip="Claude Code usage per project directory. 'Project' is the folder path Claude was run from. Message count comes from history.jsonl; Sessions counts distinct session IDs within each project.">?</span>
+      </h2>
+      <button class="btn btn-sm" onclick="exportProjectsCSV()">↓ CSV</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Project <span class="tip" data-tooltip="The filesystem path of the project directory Claude Code was run from.">?</span></th>
+            <th>Messages <span class="tip" data-tooltip="Count of user prompts sent within this project.">?</span></th>
+            <th>Sessions <span class="tip" data-tooltip="Count of distinct session IDs. Each Claude Code startup creates a new session.">?</span></th>
+            <th>Last Active <span class="tip" data-tooltip="Timestamp of the most recent prompt in this project.">?</span></th>
+          </tr>
+        </thead>
+        <tbody id="projects-body">
+          <tr><td colspan="4" class="loading">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Prompt History ──────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-header">
+      <h2>
+        Prompt History
+        <span class="tip" data-tooltip="Your recent Claude Code prompts from history.jsonl. Click any row to expand the full conversation thread for that session. Use tabs to filter by project or the search box to find specific prompts.">?</span>
+      </h2>
+    </div>
+    <div class="history-controls">
+      <div class="tabs" id="history-tabs"></div>
+      <input type="text" id="history-search" placeholder="Filter prompts…" autocomplete="off">
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Project</th>
+            <th>Prompt <span class="tip" data-tooltip="Click any row to expand the full session thread — all user and assistant turns for that session.">?</span></th>
+            <th>Session</th>
+          </tr>
+        </thead>
+        <tbody id="history-body">
+          <tr><td colspan="4" class="loading">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<!-- Tooltip popup (singleton) -->
+<div id="tooltip-popup"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// Utils
+// ═══════════════════════════════════════════════════════════
+const fmt  = (n) => n != null ? n.toLocaleString() : '—';
+const fmtD = (ts) => {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+const fmtDT = (ts) => {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleString('en-AU', {
+    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+};
+const shortProj = (p) => {
+  if (!p) return '—';
+  return p.split('/').filter(Boolean).slice(-1)[0] || p;
+};
+const esc = (str) => {
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+};
+const hitClass = (r) => r > 80 ? 'hit-green' : r > 50 ? 'hit-amber' : 'hit-red';
+
+// ═══════════════════════════════════════════════════════════
+// App State
+// ═══════════════════════════════════════════════════════════
+let appData = { history: [], toolData: {}, projects: [], costData: {} };
+let activeTab = 'all';
+let historyFilter = '';
+let expandedSession = null;
+
+// ═══════════════════════════════════════════════════════════
+// Tooltip System
+// ═══════════════════════════════════════════════════════════
+const tooltipEl = document.getElementById('tooltip-popup');
+
+document.addEventListener('mouseover', (e) => {
+  const t = e.target.closest('[data-tooltip]');
+  if (!t) return;
+  tooltipEl.textContent = t.dataset.tooltip;
+  tooltipEl.style.display = 'block';
+  const r = t.getBoundingClientRect();
+  const left = Math.min(r.left, window.innerWidth - tooltipEl.offsetWidth - 12);
+  tooltipEl.style.left = Math.max(8, left) + 'px';
+  tooltipEl.style.top  = (r.bottom + 8 + window.scrollY) + 'px';
+});
+document.addEventListener('mouseout', (e) => {
+  if (e.target.closest('[data-tooltip]')) tooltipEl.style.display = 'none';
+});
+document.addEventListener('scroll', () => { tooltipEl.style.display = 'none'; }, true);
+
+// ═══════════════════════════════════════════════════════════
+// Explainer
+// ═══════════════════════════════════════════════════════════
+function toggleExplainer() {
+  const body = document.getElementById('explainer-body');
+  const btn  = document.getElementById('explainer-toggle');
+  const open = body.classList.toggle('open');
+  btn.classList.toggle('open', open);
+}
+
+// ═══════════════════════════════════════════════════════════
+// SSE — Real-time Updates
+// ═══════════════════════════════════════════════════════════
+function initSSE() {
+  const dot  = document.getElementById('live-dot');
+  const text = document.getElementById('live-text');
+
+  const connect = () => {
+    const es = new EventSource('/api/events');
+    es.onopen = () => {
+      dot.className  = 'live-dot connected';
+      text.textContent = 'Live';
     };
-    const fmtDateTime = (ts) => {
-      if (!ts) return '—';
-      const d = new Date(ts);
-      return d.toLocaleString('en-AU', {
-        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false,
-      });
+    es.onmessage = (e) => {
+      if (e.data === 'refresh') {
+        dot.className  = 'live-dot refreshing';
+        text.textContent = 'Refreshing…';
+        load().then(() => {
+          dot.className  = 'live-dot connected';
+          text.textContent = 'Live';
+        });
+      }
     };
-    const shortProject = (p) => {
-      if (!p) return '—';
-      const parts = p.split('/');
-      // Take last meaningful segment(s)
-      return parts.slice(-1)[0] || parts.slice(-2)[0];
+    es.onerror = () => {
+      dot.className  = 'live-dot';
+      text.textContent = 'Disconnected';
+      es.close();
+      setTimeout(connect, 5000);
     };
+  };
+  connect();
+}
 
-    async function load() {
-      const [stats, history, toolData, projects, costData] = await Promise.all([
-        fetch('/api/stats').then(r => r.json()),
-        fetch('/api/history').then(r => r.json()),
-        fetch('/api/tool-calls').then(r => r.json()),
-        fetch('/api/projects').then(r => r.json()),
-        fetch('/api/daily-costs').then(r => r.json()),
-      ]);
+// ═══════════════════════════════════════════════════════════
+// Load All Data
+// ═══════════════════════════════════════════════════════════
+async function load() {
+  try {
+    const [history, toolData, projects, costData] = await Promise.all([
+      fetch('/api/history').then(r => r.json()).catch(() => []),
+      fetch('/api/tool-calls').then(r => r.json()).catch(() => ({})),
+      fetch('/api/projects').then(r => r.json()).catch(() => []),
+      fetch('/api/daily-costs').then(r => r.json()).catch(() => ({})),
+    ]);
 
-      renderSummary(costData, stats);
-      renderDailyCosts(costData);
-      renderTools(toolData);
-      renderProjects(projects);
-      renderHistory(history);
-    }
+    appData = { history, toolData, projects, costData };
 
-    function renderSummary(costData, stats) {
-      const container = document.getElementById('summary-section');
-      const totals = costData.totals || {};
-      const days = costData.days || [];
-      const today = new Date().toISOString().slice(0, 10);
-      const todayData = days.find(d => d.date === today);
+    renderSummary();
+    renderInsights();
+    renderCacheCards();
+    renderDailyCosts();
+    renderTools();
+    renderProjects();
+    renderHistory();
+  } catch (err) {
+    console.error('Load failed:', err);
+  }
+}
 
-      function calcMetrics(d) {
-        const allInput = d.input + d.cacheRead + d.cacheCreate;
-        const hitRate = allInput > 0 ? (d.cacheRead / allInput * 100) : 0;
-        const noCacheCost = (allInput * 5.0 + d.output * 25.0) / 1e6;
-        const saved = noCacheCost - d.cost;
-        return { hitRate, saved };
-      }
+// ═══════════════════════════════════════════════════════════
+// Render: Summary
+// ═══════════════════════════════════════════════════════════
+function renderSummary() {
+  const { costData } = appData;
+  const container = document.getElementById('summary-grid');
+  const totals = costData.totals || {};
+  const days   = costData.days   || [];
+  const rates  = costData.rates  || { input: 5/1e6, output: 25/1e6, cacheRead: .5/1e6, cacheCreate: 6.25/1e6 };
+  const today  = new Date().toISOString().slice(0, 10);
+  const todayD = days.find(d => d.date === today);
 
-      function topModelsCard(models, cls) {
-        if (!models || Object.keys(models).length === 0) return '';
-        const sorted = Object.entries(models).sort((a, b) => b[1] - a[1]).slice(0, 3);
-        return `
-        <div class="top-models" style="margin-top:12px;padding-top:12px;border-top:1px solid #21262d">
-          <div class="metric-label" style="margin-bottom:8px">Top Models</div>
-          ${sorted.map(([model, count], i) => `
-            <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
-              <span class="model-rank" style="font-size:0.65rem;color:#8b949e;min-width:16px">${i + 1}.</span>
-              <span class="model-name" style="font-size:0.75rem;color:#d2a8ff;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${model}</span>
-              <span class="model-count" style="font-size:0.7rem;color:#8b949e">${fmt(count)} responses</span>
-            </div>
-          `).join('')}
-        </div>`;
-      }
+  const metrics = (d) => {
+    const allInput = d.input + d.cacheRead + d.cacheCreate;
+    const hitRate  = allInput > 0 ? d.cacheRead / allInput * 100 : 0;
+    const noCost   = allInput * rates.input + d.output * rates.output;
+    const saved    = noCost - d.cost;
+    return { hitRate, saved };
+  };
 
-      function panel(data, isToday, models) {
-        const cls = isToday ? 'today' : 'alltime';
-        const badge = isToday ? 'Today' : 'All Time';
-        const date = isToday ? today : (days.length ? `Since ${days[0].date}` : '');
-        const m = calcMetrics(data);
+  const modelsHtml = (models) => {
+    if (!models || !Object.keys(models).length) return '';
+    const top3 = Object.entries(models).sort((a,b) => b[1]-a[1]).slice(0, 3);
+    return `<div class="top-models">
+      <div style="font-size:.62rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">
+        Top Models
+      </div>
+      ${top3.map(([m, c], i) => `
+        <div class="model-row">
+          <span class="model-rank">${i+1}.</span>
+          <span class="model-name" title="${esc(m)}">${esc(m)}</span>
+          <span class="model-count">${fmt(c)} resp.</span>
+        </div>`).join('')}
+    </div>`;
+  };
 
-        return `
-        <div class="summary-panel ${cls}">
-          <div class="panel-header">
-            <span class="panel-badge">${badge}</span>
-            <span class="panel-date">${date}</span>
-          </div>
-          <div class="metric-grid">
-            <div class="metric">
-              <div class="metric-label">Sessions</div>
-              <div class="metric-value">${fmt(data.sessions)}</div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">Messages</div>
-              <div class="metric-value">${fmt(data.messages)}</div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">Tool Calls</div>
-              <div class="metric-value">${fmt(data.toolCalls)}</div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">Cache Hit</div>
-              <div class="metric-value ${m.hitRate > 80 ? 'green' : m.hitRate > 50 ? 'amber' : 'pink'}">${m.hitRate.toFixed(1)}%</div>
-            </div>
-          </div>
-          <hr class="summary-divider">
-          <div class="metric-grid">
-            <div class="metric">
-              <div class="metric-label">Est. Cost</div>
-              <div class="metric-value amber">$${data.cost.toFixed(2)}</div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">Saved</div>
-              <div class="metric-value green">$${m.saved.toFixed(2)}</div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">Cache Read</div>
-              <div class="metric-value blue">${fmt(data.cacheRead)}</div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">Output Tokens</div>
-              <div class="metric-value">${fmt(data.output)}</div>
-            </div>
-          </div>
-          ${topModelsCard(models, cls)}
-        </div>`;
-      }
+  const panel = (d, isToday, models) => {
+    const cls   = isToday ? 'today' : 'alltime';
+    const badge = isToday ? 'Today' : 'All Time';
+    const sub   = isToday ? today : (days.length ? `Since ${days[0].date}` : '');
+    const m     = metrics(d);
+    const hc    = m.hitRate > 80 ? 'green' : m.hitRate > 50 ? 'amber' : 'red';
+    return `
+    <div class="summary-panel ${cls}">
+      <div class="panel-header">
+        <span class="panel-badge">${badge}</span>
+        <span class="panel-date">${sub}</span>
+      </div>
+      <div class="metric-grid">
+        <div class="metric">
+          <div class="metric-label">Sessions <span class="tip" data-tooltip="Distinct session IDs active on this period. Each Claude Code startup = one session.">?</span></div>
+          <div class="metric-value">${fmt(d.sessions)}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Messages <span class="tip" data-tooltip="User prompts sent. Multiple messages can share a session and benefit from the same cache.">?</span></div>
+          <div class="metric-value">${fmt(d.messages)}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Tool Calls <span class="tip" data-tooltip="Total tool invocations by Claude (Bash, Read, Edit, Write, Grep, etc.) in this period.">?</span></div>
+          <div class="metric-value">${fmt(d.toolCalls)}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Cache Hit <span class="tip" data-tooltip="cacheRead ÷ (input + cacheRead + cacheCreate). Higher = more tokens served from cache at 90% discount.">?</span></div>
+          <div class="metric-value ${hc}">${m.hitRate.toFixed(1)}%</div>
+        </div>
+      </div>
+      <hr class="summary-divider">
+      <div class="metric-grid">
+        <div class="metric">
+          <div class="metric-label">Est. Cost <span class="tip" data-tooltip="Estimated API cost based on token usage × your configured rates. Set rates in .env to match your actual billing.">?</span></div>
+          <div class="metric-value amber">$${d.cost.toFixed(2)}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Saved <span class="tip" data-tooltip="(allInput × inputRate + output × outputRate) − actualCost. Money avoided by cache reads being cheaper than fresh input.">?</span></div>
+          <div class="metric-value green">$${Math.max(0, m.saved).toFixed(2)}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Cache Read <span class="tip" data-tooltip="Tokens served from Anthropic's prompt cache. Each cache read costs ~90% less than the equivalent fresh input token.">?</span></div>
+          <div class="metric-value blue">${fmt(d.cacheRead)}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Output Tokens <span class="tip" data-tooltip="Tokens generated by Claude in responses. Billed at the output rate, which is the highest rate in the pricing structure.">?</span></div>
+          <div class="metric-value">${fmt(d.output)}</div>
+        </div>
+      </div>
+      ${modelsHtml(models)}
+    </div>`;
+  };
 
-      const todayPanel = todayData
-        ? panel(todayData, true, todayData.models)
-        : `<div class="summary-panel today">
-            <div class="panel-header">
-              <span class="panel-badge">Today</span>
-              <span class="panel-date">${today}</span>
-            </div>
-            <div class="metric" style="padding:10px"><div class="metric-label">No activity yet</div></div>
-          </div>`;
+  const zero = { sessions:0, messages:0, toolCalls:0, cost:0, input:0, output:0, cacheRead:0, cacheCreate:0 };
+  const todayPanel = todayD
+    ? panel(todayD, true, todayD.models)
+    : `<div class="summary-panel today">
+        <div class="panel-header"><span class="panel-badge">Today</span><span class="panel-date">${today}</span></div>
+        <div style="padding:12px;font-size:.8rem;color:var(--text-dim)">No Claude Code activity yet today.</div>
+       </div>`;
 
-      const allTimePanel = panel(totals, false, totals.models);
+  container.innerHTML = todayPanel + panel(totals, false, totals.models);
+}
 
-      container.innerHTML = `<div class="summary-grid">${todayPanel}${allTimePanel}</div>`;
-    }
+// ═══════════════════════════════════════════════════════════
+// Render: Cache Cards
+// ═══════════════════════════════════════════════════════════
+function renderCacheCards() {
+  const { costData } = appData;
+  const totals = costData.totals || {};
+  const rates  = costData.rates  || { input: 5/1e6, output: 25/1e6 };
+  const totalAllInput = (totals.input||0) + (totals.cacheRead||0) + (totals.cacheCreate||0);
+  const hitRate       = totalAllInput > 0 ? totals.cacheRead / totalAllInput * 100 : 0;
+  const noCacheCost   = totalAllInput * rates.input + (totals.output||0) * rates.output;
+  const saved         = noCacheCost - (totals.cost || 0);
+  const savPct        = noCacheCost > 0 ? (1 - (totals.cost||0) / noCacheCost) * 100 : 0;
+  const hc            = hitRate > 80 ? 'var(--green)' : hitRate > 50 ? 'var(--amber)' : 'var(--red)';
 
-    function card(label, value, sub) {
-      return `<div class="card">
-        <div class="label">${label}</div>
-        <div class="value">${value}</div>
-        ${sub ? `<div class="sub">${sub}</div>` : ''}
+  document.getElementById('cache-cards').innerHTML = `
+    <div class="card">
+      <div class="label">Cache Hit Rate <span class="tip" data-tooltip="How often input tokens were served from cache vs freshly processed. Target &gt;70% for meaningful savings.">?</span></div>
+      <div class="value" style="color:${hc}">${hitRate.toFixed(1)}%</div>
+      <div class="sub">${fmt(totals.cacheRead)} of ${fmt(totalAllInput)} input tokens</div>
+    </div>
+    <div class="card">
+      <div class="label">Cost With Cache <span class="tip" data-tooltip="What you actually paid — using cache read and cache write rates where applicable.">?</span></div>
+      <div class="value" style="color:var(--amber)">$${(totals.cost||0).toFixed(2)}</div>
+      <div class="sub">Actual estimated spend</div>
+    </div>
+    <div class="card">
+      <div class="label">Cost Without Cache <span class="tip" data-tooltip="What you would have paid if all input tokens were billed at the fresh input rate (no caching at all).">?</span></div>
+      <div class="value" style="color:var(--red)">$${noCacheCost.toFixed(2)}</div>
+      <div class="sub">If all input at $${(rates.input*1e6).toFixed(0)}/M</div>
+    </div>
+    <div class="card">
+      <div class="label">Cache Savings <span class="tip" data-tooltip="Cost Without Cache − Cost With Cache. The dollar value of cache efficiency. Cache writes are an investment — they cost more upfront but each future read is much cheaper.">?</span></div>
+      <div class="value" style="color:var(--green)">$${Math.max(0, saved).toFixed(2)}</div>
+      <div class="sub">${savPct.toFixed(0)}% cheaper overall</div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Render: Daily Costs
+// ═══════════════════════════════════════════════════════════
+function renderDailyCosts() {
+  const { costData } = appData;
+  const { days = [], totals = {}, rates = {} } = costData;
+  const container = document.getElementById('daily-costs');
+  if (!days.length) { container.innerHTML = '<div class="empty">No cost data found.</div>'; return; }
+
+  const maxCost = Math.max(...days.map(d => d.cost), 0.001);
+
+  const rows = days.map(d => {
+    const allInput = d.input + d.cacheRead + d.cacheCreate;
+    const hr   = allInput > 0 ? d.cacheRead / allInput * 100 : 0;
+    const noCost = allInput * (rates.input||5e-6) + d.output * (rates.output||25e-6);
+    const sv   = Math.max(0, noCost - d.cost);
+    const barW = Math.max((d.cost / maxCost) * 90, 2);
+    return `
+    <tr>
+      <td style="white-space:nowrap">${d.date}</td>
+      <td class="val">${fmt(d.messages)}</td>
+      <td class="val">${fmt(d.toolCalls)}</td>
+      <td class="val">${fmt(d.sessions)}</td>
+      <td class="val">${fmt(d.cacheRead)}</td>
+      <td class="val">${fmt(d.cacheCreate)}</td>
+      <td class="val ${hitClass(hr)}">${hr.toFixed(1)}%</td>
+      <td class="val">
+        <div class="bar-wrap">
+          <div class="bar cost" style="width:${barW}px"></div>
+          <span>$${d.cost.toFixed(4)}</span>
+        </div>
+      </td>
+      <td class="val" style="color:var(--green)">$${sv.toFixed(4)}</td>
+    </tr>`;
+  }).join('');
+
+  const totalAllInput = (totals.input||0) + (totals.cacheRead||0) + (totals.cacheCreate||0);
+  const totalHR = totalAllInput > 0 ? totals.cacheRead / totalAllInput * 100 : 0;
+  const totalNoCost = totalAllInput * (rates.input||5e-6) + (totals.output||0) * (rates.output||25e-6);
+  const totalSaved  = Math.max(0, totalNoCost - (totals.cost||0));
+
+  container.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th style="text-align:right">Msgs <span class="tip" data-tooltip="User messages sent on this day.">?</span></th>
+            <th style="text-align:right">Tools <span class="tip" data-tooltip="Total tool calls made by Claude on this day.">?</span></th>
+            <th style="text-align:right">Sess <span class="tip" data-tooltip="Distinct sessions active on this day.">?</span></th>
+            <th style="text-align:right">Cache Read <span class="tip" data-tooltip="Tokens served from cache — billed at ~90% discount vs fresh input.">?</span></th>
+            <th style="text-align:right">Cache Write <span class="tip" data-tooltip="Tokens written to cache this day. These cost 25% more than input but enable future reads to be much cheaper.">?</span></th>
+            <th style="text-align:right">Hit Rate <span class="tip" data-tooltip="cacheRead ÷ totalInput for this day. Days with high hit rates had good context reuse.">?</span></th>
+            <th style="text-align:right">Est. Cost <span class="tip" data-tooltip="Estimated spend for this day based on your configured rates.">?</span></th>
+            <th style="text-align:right">Saved <span class="tip" data-tooltip="Estimated savings vs if all input were billed at the fresh input rate.">?</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+          <tr class="total-row">
+            <td>Total</td>
+            <td class="val">${fmt(totals.messages)}</td>
+            <td class="val">${fmt(totals.toolCalls)}</td>
+            <td class="val">${fmt(totals.sessions)}</td>
+            <td class="val">${fmt(totals.cacheRead)}</td>
+            <td class="val">${fmt(totals.cacheCreate)}</td>
+            <td class="val ${hitClass(totalHR)}">${totalHR.toFixed(1)}%</td>
+            <td class="val">$${(totals.cost||0).toFixed(4)}</td>
+            <td class="val" style="color:var(--green)">$${totalSaved.toFixed(4)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="cost-note">
+      Rates: Input $${((rates.input||5e-6)*1e6).toFixed(2)}/M · Output $${((rates.output||25e-6)*1e6).toFixed(2)}/M · Cache Read $${((rates.cacheRead||.5e-6)*1e6).toFixed(2)}/M · Cache Write $${((rates.cacheCreate||6.25e-6)*1e6).toFixed(2)}/M — configure in <code>.env</code>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Render: Tool Calls
+// ═══════════════════════════════════════════════════════════
+function renderTools() {
+  const { toolData } = appData;
+  const allTools = toolData.tools || [];
+  const byProject = toolData.byProject || {};
+  const container = document.getElementById('tool-calls');
+  if (!allTools.length) { container.innerHTML = '<div class="empty">No tool calls found.</div>'; return; }
+
+  const projects = Object.keys(byProject);
+
+  container.innerHTML = `
+    <div class="tool-controls">
+      <label for="tool-project-filter">Filter by project:</label>
+      <select id="tool-project-filter">
+        <option value="">All projects</option>
+        ${projects.map(p => `<option value="${esc(p)}">${esc(shortProj(p))}</option>`).join('')}
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <tbody id="tool-table-body"></tbody>
+      </table>
+    </div>
+    <div id="tool-detail-container"></div>`;
+
+  renderToolTable('');
+
+  document.getElementById('tool-project-filter').addEventListener('change', (e) => {
+    renderToolTable(e.target.value);
+  });
+  document.getElementById('tool-table-body').addEventListener('click', (e) => {
+    const row = e.target.closest('.tool-row');
+    if (row) loadToolDetails(row.dataset.tool);
+  });
+}
+
+function renderToolTable(projFilter) {
+  const { toolData } = appData;
+  const allTools   = toolData.tools   || [];
+  const byProject  = toolData.byProject || {};
+  const tbody = document.getElementById('tool-table-body');
+
+  let tools = allTools;
+  if (projFilter) {
+    const projCounts = byProject[projFilter] || {};
+    tools = allTools
+      .map(t => ({ tool: t.tool, count: projCounts[t.tool] || 0 }))
+      .filter(t => t.count > 0)
+      .sort((a,b) => b.count - a.count);
+  }
+
+  if (!tools.length) { tbody.innerHTML = `<tr><td colspan="2" class="empty">No tool calls for this project.</td></tr>`; return; }
+
+  const max = tools[0].count;
+  tbody.innerHTML = tools.map(t => `
+    <tr class="tool-row" data-tool="${esc(t.tool)}">
+      <td class="tool-name">${esc(t.tool)}</td>
+      <td style="width:100%">
+        <div class="bar-wrap">
+          <div class="bar" style="width:${Math.max(t.count/max*100, 1)}%"></div>
+          <span class="bar-lbl">${fmt(t.count)}</span>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// Tool Details
+// ═══════════════════════════════════════════════════════════
+async function loadToolDetails(toolName) {
+  const container = document.getElementById('tool-detail-container');
+  container.innerHTML = '<div class="detail-panel"><div class="loading">Loading…</div></div>';
+
+  const calls = await fetch(`/api/tool-details/${encodeURIComponent(toolName)}`).then(r => r.json()).catch(() => []);
+  window._lastToolCalls = { toolName, calls };
+
+  const panel = document.createElement('div');
+  panel.className = 'detail-panel';
+
+  let rows = '';
+  for (const c of calls.slice(0, 200)) {
+    const proj = shortProj(c.project || '');
+    const time = fmtDT(c.timestamp);
+    if (toolName === 'Bash') {
+      rows += `<div class="detail-row">
+        ${c.description ? `<div class="detail-desc">${esc(c.description)}</div>` : ''}
+        <div class="detail-cmd">$ ${esc(c.command)}</div>
+        <div class="detail-meta">${time} · ${proj}</div>
+      </div>`;
+    } else if (['Read','Edit','Write'].includes(toolName)) {
+      rows += `<div class="detail-row">
+        <div class="detail-path">${esc(c.file_path)}</div>
+        <div class="detail-meta">${time} · ${proj}</div>
+      </div>`;
+    } else if (toolName === 'Grep') {
+      rows += `<div class="detail-row">
+        <div class="detail-cmd">/${esc(c.pattern)}/</div>
+        ${c.path ? `<div class="detail-path">${esc(c.path)}</div>` : ''}
+        ${c.glob ? `<div class="detail-desc">glob: ${esc(c.glob)}</div>` : ''}
+        <div class="detail-meta">${time} · ${proj}</div>
+      </div>`;
+    } else if (toolName === 'Glob') {
+      rows += `<div class="detail-row">
+        <div class="detail-cmd">${esc(c.pattern)}</div>
+        ${c.path ? `<div class="detail-path">${esc(c.path)}</div>` : ''}
+        <div class="detail-meta">${time} · ${proj}</div>
+      </div>`;
+    } else if (toolName === 'Agent') {
+      rows += `<div class="detail-row">
+        <div class="detail-desc">${esc(c.description)}</div>
+        ${c.subagent_type ? `<div class="detail-path">type: ${esc(c.subagent_type)}</div>` : ''}
+        <div class="detail-meta">${time} · ${proj}</div>
+      </div>`;
+    } else {
+      rows += `<div class="detail-row">
+        <div class="detail-cmd">${esc(c.input || '')}</div>
+        <div class="detail-meta">${time} · ${proj}</div>
       </div>`;
     }
+  }
+  if (calls.length > 200) rows += `<div class="detail-row detail-meta">…and ${calls.length - 200} more</div>`;
 
-    function renderDailyCosts(data) {
-      const container = document.getElementById('daily-costs');
-      const { days, totals } = data;
-      if (!days || !days.length) {
-        container.innerHTML = '<div class="loading">No cost data found</div>';
-        return;
-      }
+  panel.innerHTML = `
+    <div class="detail-panel-header">
+      <span class="detail-panel-title">${esc(toolName)} — ${fmt(calls.length)} calls</span>
+      <div class="detail-panel-actions">
+        <button class="btn btn-sm" onclick="exportToolCalls()">↓ Export</button>
+        <button class="btn btn-sm" onclick="this.closest('.detail-panel').remove()">✕ Close</button>
+      </div>
+    </div>
+    ${rows}`;
 
-      // Render cache summary cards
-      const totalAllInput = totals.input + totals.cacheRead + totals.cacheCreate;
-      const hitRate = totalAllInput > 0 ? (totals.cacheRead / totalAllInput * 100) : 0;
-      const costWithoutCache = (totalAllInput * 5.0 + totals.output * 25.0) / 1e6;
-      const saved = costWithoutCache - totals.cost;
-      const savingsPct = costWithoutCache > 0 ? ((1 - totals.cost / costWithoutCache) * 100) : 0;
+  container.innerHTML = '';
+  container.appendChild(panel);
+}
 
-      document.getElementById('cache-cards').innerHTML = [
-        card('Cache Hit Rate', hitRate.toFixed(1) + '%', `${fmt(totals.cacheRead)} of ${fmt(totalAllInput)} input tokens`),
-        card('Cost With Cache', '$' + totals.cost.toFixed(2), 'What you actually paid'),
-        card('Cost Without Cache', '$' + costWithoutCache.toFixed(2), 'If all input at $5/M'),
-        card('Cache Savings', '$' + saved.toFixed(2), savingsPct.toFixed(0) + '% cheaper'),
-      ].join('');
+// ═══════════════════════════════════════════════════════════
+// Render: Projects
+// ═══════════════════════════════════════════════════════════
+function renderProjects() {
+  const tbody = document.getElementById('projects-body');
+  tbody.innerHTML = appData.projects.map(p => `
+    <tr>
+      <td>
+        <span class="badge">${esc(p.shortName)}</span>
+        <br><span class="session-id" title="${esc(p.name)}">${esc(p.name)}</span>
+      </td>
+      <td>${fmt(p.messages)}</td>
+      <td>${fmt(p.sessions)}</td>
+      <td style="white-space:nowrap">${fmtDT(p.lastSeen)}</td>
+    </tr>`).join('') || '<tr><td colspan="4" class="empty">No projects found.</td></tr>';
+}
 
-      // Daily table with cache columns
-      const maxCost = Math.max(...days.map(d => d.cost));
+// ═══════════════════════════════════════════════════════════
+// Render: Prompt History
+// ═══════════════════════════════════════════════════════════
+function renderHistory() {
+  const { history } = appData;
+  const allProjects = [...new Set(history.map(h => h.project).filter(Boolean))];
+  const tabs = document.getElementById('history-tabs');
 
-      const rows = days.map(d => {
-        const allInput = d.input + d.cacheRead + d.cacheCreate;
-        const hr = allInput > 0 ? (d.cacheRead / allInput * 100) : 0;
-        const noCacheCost = (allInput * 5.0 + d.output * 25.0) / 1e6;
-        const sv = noCacheCost - d.cost;
-        return `
-        <tr>
-          <td>${d.date}</td>
-          <td class="cost-value">${fmt(d.messages)}</td>
-          <td class="cost-value">${fmt(d.toolCalls)}</td>
-          <td class="cost-value">${fmt(d.sessions)}</td>
-          <td class="cost-value">${fmt(d.cacheRead)}</td>
-          <td class="cost-value">${fmt(d.cacheCreate)}</td>
-          <td class="cost-value" style="color: ${hr > 80 ? '#7ee787' : hr > 50 ? '#d29922' : '#f85149'}">${hr.toFixed(1)}%</td>
-          <td class="cost-value">
-            <div class="bar-container">
-              <span class="cost-bar" style="width: ${Math.max((d.cost / maxCost) * 80, 2)}px"></span>
-              <span>$${d.cost.toFixed(2)}</span>
-            </div>
-          </td>
-          <td class="cost-value" style="color: #7ee787">$${sv.toFixed(2)}</td>
-        </tr>
-      `}).join('');
+  tabs.innerHTML = `<button class="tab ${activeTab==='all'?'active':''}" data-project="all">All</button>` +
+    allProjects.map(p => `<button class="tab ${activeTab===p?'active':''}" data-project="${esc(p)}">${esc(shortProj(p))}</button>`).join('');
 
-      const totalNoCacheCost = costWithoutCache;
-      container.innerHTML = `
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th><th style="text-align:right">Msgs</th><th style="text-align:right">Tools</th><th style="text-align:right">Sess</th>
-              <th style="text-align:right">Cache Read</th><th style="text-align:right">Cache Write</th><th style="text-align:right">Hit Rate</th><th style="text-align:right">Est. Cost</th><th style="text-align:right">Saved</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows}
-            <tr class="cost-total">
-              <td>Total</td>
-              <td class="cost-value">${fmt(totals.messages)}</td>
-              <td class="cost-value">${fmt(totals.toolCalls)}</td>
-              <td class="cost-value">${fmt(totals.sessions)}</td>
-              <td class="cost-value">${fmt(totals.cacheRead)}</td>
-              <td class="cost-value">${fmt(totals.cacheCreate)}</td>
-              <td class="cost-value" style="color: #7ee787">${hitRate.toFixed(1)}%</td>
-              <td class="cost-value"><strong>$${totals.cost.toFixed(2)}</strong></td>
-              <td class="cost-value" style="color: #7ee787"><strong>$${saved.toFixed(2)}</strong></td>
-            </tr>
-          </tbody>
-        </table>
-        <div class="cost-note">Rates: Bedrock (ap-southeast-2) — Input $5/M, Output $25/M, Cache Read $0.50/M, Cache Write $6.25/M. Derived from actual session costs. Edit RATES in server.js to adjust.</div>
-      `;
+  tabs.addEventListener('click', (e) => {
+    if (!e.target.classList.contains('tab')) return;
+    activeTab = e.target.dataset.project;
+    tabs.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.project === activeTab));
+    renderHistoryRows();
+  });
+
+  document.getElementById('history-search').addEventListener('input', (e) => {
+    historyFilter = e.target.value.toLowerCase();
+    renderHistoryRows();
+  });
+
+  renderHistoryRows();
+}
+
+function renderHistoryRows() {
+  const { history } = appData;
+  const tbody = document.getElementById('history-body');
+  expandedSession = null;
+
+  let filtered = activeTab === 'all' ? history : history.filter(h => h.project === activeTab);
+  if (historyFilter) {
+    filtered = filtered.filter(h =>
+      (h.display || '').toLowerCase().includes(historyFilter) ||
+      (h.project  || '').toLowerCase().includes(historyFilter) ||
+      (h.sessionId|| '').toLowerCase().includes(historyFilter)
+    );
+  }
+
+  const sorted = [...filtered].reverse();
+  if (!sorted.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="empty">No matching prompts.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = sorted.map(h => `
+    <tr class="history-row" data-session="${esc(h.sessionId||'')}">
+      <td style="white-space:nowrap">${fmtDT(h.timestamp)}</td>
+      <td><span class="badge">${esc(shortProj(h.project))}</span></td>
+      <td class="prompt-text" title="${esc(h.display||'').replace(/"/g,'&quot;')}">
+        ${esc(h.display||'')}
+        <span class="thread-indicator">▸</span>
+      </td>
+      <td class="session-id">${(h.sessionId||'').slice(0,8)}</td>
+    </tr>`).join('');
+
+  tbody.addEventListener('click', (e) => {
+    const row = e.target.closest('.history-row');
+    if (!row) return;
+    const sid = row.dataset.session;
+    if (!sid) return;
+    handleThreadToggle(row, sid);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// Session Thread View
+// ═══════════════════════════════════════════════════════════
+async function handleThreadToggle(row, sessionId) {
+  const existing = row.nextElementSibling;
+  if (existing && existing.classList.contains('session-thread-row')) {
+    existing.remove();
+    row.classList.remove('expanded');
+    expandedSession = null;
+    return;
+  }
+
+  // Close any other open thread
+  document.querySelectorAll('.session-thread-row').forEach(r => r.remove());
+  document.querySelectorAll('.history-row.expanded').forEach(r => r.classList.remove('expanded'));
+
+  expandedSession = sessionId;
+  row.classList.add('expanded');
+
+  const threadRow = document.createElement('tr');
+  threadRow.className = 'session-thread-row';
+  threadRow.innerHTML = `<td colspan="4"><div class="session-thread"><div class="loading">Loading thread…</div></div></td>`;
+  row.after(threadRow);
+
+  const messages = await fetch(`/api/session/${encodeURIComponent(sessionId)}`).then(r => r.json()).catch(() => []);
+  const thread = threadRow.querySelector('.session-thread');
+
+  if (!messages.length) {
+    thread.innerHTML = '<div class="empty">No messages found for this session.</div>';
+    return;
+  }
+
+  thread.innerHTML = messages.map(msg => {
+    const isUser = msg.type === 'user';
+    const initials = isUser ? 'U' : 'AI';
+    const role     = isUser ? 'You' : 'Claude';
+
+    let body = '';
+    if (msg.text) {
+      body += `<div class="thread-text" onclick="this.classList.toggle('expanded')">${esc(msg.text)}${msg.text.length >= 3000 ? '…' : ''}</div>`;
     }
+    if (!isUser && msg.toolUses && msg.toolUses.length) {
+      body += `<div class="thread-tools">${msg.toolUses.map(t =>
+        `<span class="thread-tool-chip" title="${esc(t.summary)}">${esc(t.name)}</span>`
+      ).join('')}</div>`;
+    }
+    const meta = [fmtDT(msg.timestamp), msg.model ? msg.model.split('-').slice(-2).join('-') : null, msg.tokens ? `${fmt(msg.tokens)} tokens` : null].filter(Boolean).join(' · ');
+    body += `<div class="thread-meta">${meta}</div>`;
 
-    function renderTools(data) {
-      const tools = data.tools || [];
-      const container = document.getElementById('tool-calls');
-      if (!tools.length) {
-        container.innerHTML = '<div class="loading">No tool calls found</div>';
-        return;
-      }
-      const max = tools[0].count;
-      const rows = tools.map(t => `
-        <tr class="tool-row" data-tool="${t.tool}">
-          <td class="tool-name">${t.tool}</td>
-          <td style="width:100%">
-            <div class="bar-container">
-              <div class="bar" style="width: ${Math.max((t.count / max) * 100, 1)}%"></div>
-              <span class="bar-count">${fmt(t.count)}</span>
-            </div>
-          </td>
-        </tr>
-      `).join('');
+    return `<div class="thread-msg">
+      <div class="thread-avatar ${msg.type}">${initials}</div>
+      <div class="thread-content">
+        <div class="thread-role">${role}</div>
+        ${body}
+      </div>
+    </div>`;
+  }).join('');
+}
 
-      container.innerHTML = `
-        <table><tbody id="tool-table-body">${rows}</tbody></table>
-        <div id="tool-detail-container"></div>
-      `;
+// ═══════════════════════════════════════════════════════════
+// Render: Pattern Insights (client-side analysis)
+// ═══════════════════════════════════════════════════════════
+function renderInsights() {
+  const { history, toolData, costData, projects } = appData;
+  const insights = computeInsights(history, toolData, costData, projects);
+  const container = document.getElementById('insights-grid');
 
-      document.getElementById('tool-table-body').addEventListener('click', (e) => {
-        const row = e.target.closest('.tool-row');
-        if (!row) return;
-        loadToolDetails(row.dataset.tool);
+  if (!insights.length) {
+    container.innerHTML = '<div class="empty">Not enough data yet. Keep using Claude Code and check back after a few sessions.</div>';
+    return;
+  }
+
+  container.innerHTML = insights.map(ins => `
+    <div class="insight-card ${ins.impact}">
+      <div class="insight-icon">${ins.icon}</div>
+      <div class="insight-body">
+        <div class="insight-title">${esc(ins.title)}</div>
+        <div class="insight-desc">${esc(ins.description)}</div>
+      </div>
+    </div>`).join('');
+}
+
+function computeInsights(history, toolData, costData, projects) {
+  const insights = [];
+  const days    = (costData.days   || []).slice().sort((a,b) => a.date.localeCompare(b.date));
+  const totals  = costData.totals  || {};
+  const rates   = costData.rates   || { input: 5/1e6, output: 25/1e6 };
+  const tools   = toolData.tools   || [];
+  const toolMap = Object.fromEntries(tools.map(t => [t.tool, t.count]));
+
+  // ── 1. Peak activity hour ──────────────────────────────────
+  if (history.length > 10) {
+    const hourCounts = new Array(24).fill(0);
+    history.forEach(h => { if (h.timestamp) hourCounts[new Date(h.timestamp).getHours()]++; });
+    const peak    = hourCounts.indexOf(Math.max(...hourCounts));
+    const peakPct = Math.round(hourCounts[peak] / history.length * 100);
+    insights.push({
+      icon: '🕐',
+      title: `Peak activity: ${peak}:00–${peak+1}:00`,
+      description: `${peakPct}% of your prompts happen in this hour window. Starting sessions here leverages warm cache from earlier work in the same time block.`,
+      impact: 'info',
+    });
+  }
+
+  // ── 2. Cache hit rate trend (last 7 vs prior 7) ────────────
+  if (days.length >= 14) {
+    const hitRate = (subset) => {
+      const t = subset.reduce((a,d) => ({ r: a.r + d.cacheRead, tot: a.tot + d.input + d.cacheRead + d.cacheCreate }), { r:0, tot:0 });
+      return t.tot > 0 ? t.r / t.tot * 100 : 0;
+    };
+    const recent = hitRate(days.slice(-7));
+    const prev   = hitRate(days.slice(-14,-7));
+    const diff   = recent - prev;
+    if (Math.abs(diff) > 5) {
+      insights.push({
+        icon: diff > 0 ? '📈' : '📉',
+        title: `Cache hit rate ${diff > 0 ? '▲' : '▼'} ${Math.abs(diff).toFixed(0)}% this week`,
+        description: diff > 0
+          ? `Improved from ${prev.toFixed(0)}% → ${recent.toFixed(0)}%. Consistent system prompts and sustained sessions are paying off. Keep it up.`
+          : `Dropped from ${prev.toFixed(0)}% → ${recent.toFixed(0)}%. Common causes: more new sessions started, changed system prompts, or working across more projects simultaneously.`,
+        impact: diff < -10 ? 'high' : 'medium',
       });
     }
 
-    async function loadToolDetails(toolName) {
-      const container = document.getElementById('tool-detail-container');
-      container.innerHTML = '<div class="tool-detail-panel"><div class="loading">Loading details...</div></div>';
-
-      const calls = await fetch(`/api/tool-details/${encodeURIComponent(toolName)}`).then(r => r.json());
-
-      const panel = document.createElement('div');
-      panel.className = 'tool-detail-panel';
-
-      const header = `<h3>
-        <span>${toolName} — ${fmt(calls.length)} calls</span>
-        <span>
-          <button class="close-btn" onclick="exportToolCalls('${toolName}', ${JSON.stringify(calls).length > 5000000 ? '[]' : 'null'})">Export</button>
-          <button class="close-btn" onclick="this.closest('.tool-detail-panel').remove()">Close</button>
-        </span>
-      </h3>`;
-
-      // Stash calls for export
-      window._lastToolCalls = { toolName, calls };
-
-      let rows = '';
-      for (const c of calls.slice(0, 200)) {
-        const proj = (c.project || '').split('-').pop();
-        const time = fmtDateTime(c.timestamp);
-
-        if (toolName === 'Bash') {
-          rows += `<div class="detail-row">
-            ${c.description ? `<div class="detail-desc">${escapeHtml(c.description)}</div>` : ''}
-            <div class="detail-cmd">$ ${escapeHtml(c.command)}</div>
-            <div class="detail-meta">${time} &middot; ${proj}</div>
-          </div>`;
-        } else if (toolName === 'Read' || toolName === 'Edit' || toolName === 'Write') {
-          rows += `<div class="detail-row">
-            <div class="detail-path">${escapeHtml(c.file_path)}</div>
-            <div class="detail-meta">${time} &middot; ${proj}</div>
-          </div>`;
-        } else if (toolName === 'Grep') {
-          rows += `<div class="detail-row">
-            <div class="detail-cmd">/${escapeHtml(c.pattern)}/</div>
-            ${c.path ? `<div class="detail-path">${escapeHtml(c.path)}</div>` : ''}
-            ${c.glob ? `<div class="detail-desc">glob: ${escapeHtml(c.glob)}</div>` : ''}
-            <div class="detail-meta">${time} &middot; ${proj}</div>
-          </div>`;
-        } else if (toolName === 'Glob') {
-          rows += `<div class="detail-row">
-            <div class="detail-cmd">${escapeHtml(c.pattern)}</div>
-            ${c.path ? `<div class="detail-path">${escapeHtml(c.path)}</div>` : ''}
-            <div class="detail-meta">${time} &middot; ${proj}</div>
-          </div>`;
-        } else if (toolName === 'Agent') {
-          rows += `<div class="detail-row">
-            <div class="detail-desc">${escapeHtml(c.description)}</div>
-            ${c.subagent_type ? `<div class="detail-path">type: ${escapeHtml(c.subagent_type)}</div>` : ''}
-            <div class="detail-meta">${time} &middot; ${proj}</div>
-          </div>`;
-        } else {
-          rows += `<div class="detail-row">
-            <div class="detail-cmd">${escapeHtml(c.input || '')}</div>
-            <div class="detail-meta">${time} &middot; ${proj}</div>
-          </div>`;
-        }
+    // ── 3. Cost trend ──────────────────────────────────────────
+    const cost7 = (subset) => subset.reduce((a,d) => a + d.cost, 0);
+    const rCost = cost7(days.slice(-7));
+    const pCost = cost7(days.slice(-14,-7));
+    if (pCost > 0) {
+      const chg = (rCost - pCost) / pCost * 100;
+      if (Math.abs(chg) > 25) {
+        insights.push({
+          icon: chg > 0 ? '💸' : '💰',
+          title: `Cost ${chg > 0 ? '▲' : '▼'} ${Math.abs(chg).toFixed(0)}% this week`,
+          description: chg > 0
+            ? `$${rCost.toFixed(2)} last 7 days vs $${pCost.toFixed(2)} prior week. Check the Daily Cost table for the spike day.`
+            : `Down to $${rCost.toFixed(2)} from $${pCost.toFixed(2)} — your efficiency is improving.`,
+          impact: chg > 50 ? 'high' : 'medium',
+        });
       }
-
-      if (calls.length > 200) {
-        rows += `<div class="detail-row detail-meta">...and ${calls.length - 200} more</div>`;
-      }
-
-      panel.innerHTML = header + rows;
-      container.innerHTML = '';
-      container.appendChild(panel);
     }
+  }
 
-    function renderProjects(projects) {
-      const tbody = document.getElementById('projects-body');
-      tbody.innerHTML = projects.map(p => `
-        <tr>
-          <td><span class="project-badge">${p.shortName}</span><br><span class="session-id">${p.name}</span></td>
-          <td>${fmt(p.messages)}</td>
-          <td>${fmt(p.sessions)}</td>
-          <td>${fmtDateTime(p.lastSeen)}</td>
-        </tr>
-      `).join('');
-    }
+  // ── 4. Tool usage patterns ─────────────────────────────────
+  const totalTools = tools.reduce((a,t) => a + t.count, 0);
+  if (totalTools > 100) {
+    const bash  = toolMap['Bash']  || 0;
+    const read  = toolMap['Read']  || 0;
+    const edit  = toolMap['Edit']  || 0;
+    const agent = toolMap['Agent'] || 0;
 
-    function renderHistory(history) {
-      // Get unique projects for tabs
-      const allProjects = [...new Set(history.map(h => h.project))];
-      const tabsEl = document.getElementById('history-tabs');
-
-      tabsEl.innerHTML = `<button class="tab active" data-project="all">All</button>` +
-        allProjects.map(p =>
-          `<button class="tab" data-project="${p}">${shortProject(p)}</button>`
-        ).join('');
-
-      const tbody = document.getElementById('history-table-body');
-
-      function render(filter) {
-        const filtered = filter === 'all' ? history : history.filter(h => h.project === filter);
-        // Show most recent first
-        const sorted = [...filtered].reverse();
-        tbody.innerHTML = sorted.map(h => `
-          <tr>
-            <td style="white-space:nowrap">${fmtDateTime(h.timestamp)}</td>
-            <td><span class="project-badge">${shortProject(h.project)}</span></td>
-            <td class="prompt-text" title="${(h.display || '').replace(/"/g, '&quot;')}">${escapeHtml(h.display || '')}</td>
-            <td class="session-id">${(h.sessionId || '').slice(0, 8)}</td>
-          </tr>
-        `).join('');
-      }
-
-      tabsEl.addEventListener('click', (e) => {
-        if (!e.target.classList.contains('tab')) return;
-        tabsEl.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        e.target.classList.add('active');
-        render(e.target.dataset.project);
+    if (bash > totalTools * 0.4) {
+      insights.push({
+        icon: '🔧',
+        title: `Bash is ${Math.round(bash/totalTools*100)}% of all tool calls`,
+        description: `Heavy shell usage detected (${fmt(bash)} Bash calls). For file reads/writes, prefer the Read/Write/Edit tools — they're diff-visible, XSS-safe, and skip shell parsing overhead. Batch related commands with && to reduce round-trips.`,
+        impact: 'medium',
       });
-
-      render('all');
     }
 
-    function exportToolCalls() {
-      const { toolName, calls } = window._lastToolCalls || {};
-      if (!toolName || !calls) return;
-
-      let lines = [];
-      lines.push(`${toolName} — ${calls.length} calls`);
-      lines.push('='.repeat(50));
-      lines.push('');
-
-      for (const c of calls) {
-        const proj = (c.project || '').split('-').pop();
-        const time = fmtDateTime(c.timestamp);
-
-        if (toolName === 'Bash') {
-          if (c.description) lines.push(c.description);
-          lines.push(`$ ${c.command}`);
-        } else if (toolName === 'Read' || toolName === 'Edit' || toolName === 'Write') {
-          lines.push(c.file_path);
-        } else if (toolName === 'Grep') {
-          lines.push(`/${c.pattern}/`);
-          if (c.path) lines.push(`  path: ${c.path}`);
-          if (c.glob) lines.push(`  glob: ${c.glob}`);
-        } else if (toolName === 'Glob') {
-          lines.push(c.pattern);
-          if (c.path) lines.push(`  path: ${c.path}`);
-        } else if (toolName === 'Agent') {
-          lines.push(c.description);
-          if (c.subagent_type) lines.push(`  type: ${c.subagent_type}`);
-        } else {
-          lines.push(c.input || '(no input)');
-        }
-
-        lines.push(`  [${time} · ${proj}]`);
-        lines.push('');
-      }
-
-      const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${toolName.toLowerCase()}-calls.txt`;
-      a.click();
-      URL.revokeObjectURL(url);
+    if (read > edit * 6 && read > 200) {
+      insights.push({
+        icon: '🔍',
+        title: `${Math.round(read/Math.max(edit,1))}× more file reads than edits`,
+        description: `${fmt(read)} reads vs ${fmt(edit)} edits. High read:edit ratios often mean repeated lookups of the same files. Ask Claude to note file contents it has already read within the session to reduce redundant reads.`,
+        impact: 'low',
+      });
     }
 
-    function escapeHtml(str) {
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
+    if (agent > 30) {
+      insights.push({
+        icon: '🤖',
+        title: `Strong subagent usage: ${fmt(agent)} Agent calls`,
+        description: `You use subagents to parallelize work and isolate context — a healthy pattern. Reminder: each subagent prompt must be self-contained. Subagents have no memory of the parent conversation.`,
+        impact: 'positive',
+      });
     }
+  }
 
-    load();
-  </script>
+  // ── 5. Overall cache health ────────────────────────────────
+  const totalAllInput = (totals.input||0) + (totals.cacheRead||0) + (totals.cacheCreate||0);
+  const overallHit = totalAllInput > 0 ? totals.cacheRead / totalAllInput * 100 : 0;
+
+  if (totalAllInput > 50000) {
+    if (overallHit < 30) {
+      insights.push({
+        icon: '⚠️',
+        title: `Low cache hit rate: ${overallHit.toFixed(0)}%`,
+        description: `Most input tokens are re-processed every turn. To improve: add a persistent system prompt to your Claude projects, avoid clearing context mid-session, and prefer continuing existing sessions over starting new ones.`,
+        impact: 'high',
+      });
+    } else if (overallHit > 70) {
+      insights.push({
+        icon: '✨',
+        title: `Excellent cache efficiency: ${overallHit.toFixed(0)}% hit rate`,
+        description: `Your token caching is working well. You're consistently reusing context across turns. Keep using stable system prompts and maintaining long-running sessions — this is what keeps costs low.`,
+        impact: 'positive',
+      });
+    }
+  }
+
+  // ── 6. Project spread ──────────────────────────────────────
+  if (projects.length > 5) {
+    const totalMsg = projects.reduce((a,p) => a + p.messages, 0);
+    const top3Msg  = projects.slice(0,3).reduce((a,p) => a + p.messages, 0);
+    const conc     = totalMsg > 0 ? top3Msg / totalMsg * 100 : 0;
+    if (conc < 60) {
+      insights.push({
+        icon: '📂',
+        title: `Activity spread across ${projects.length} projects`,
+        description: `Your top 3 projects account for only ${conc.toFixed(0)}% of messages. Each distinct project starts with a cold cache. Concentrating work in fewer projects can significantly improve cache efficiency and reduce costs.`,
+        impact: 'low',
+      });
+    }
+  }
+
+  // ── 7. Enough activity, give a model efficiency tip ────────
+  const totalOutput = totals.output || 0;
+  const totalInput  = totals.input  || 0;
+  if (totalOutput > 0 && totalInput > 0 && totalOutput / totalInput > 0.5) {
+    insights.push({
+      icon: '💡',
+      title: `High output-to-input ratio (${(totalOutput/totalInput*100).toFixed(0)}%)`,
+      description: `Your output tokens are a large fraction of input. If Claude is generating extensive boilerplate or verbose explanations you don't need, instruct it to be more concise. Output tokens are the most expensive component.`,
+      impact: 'medium',
+    });
+  }
+
+  // Default message
+  if (insights.length === 0) {
+    insights.push({
+      icon: '📊',
+      title: 'Building your usage profile…',
+      description: 'Keep using Claude Code. After more activity, Claude Lens will analyze your patterns and surface personalized efficiency recommendations.',
+      impact: 'info',
+    });
+  }
+
+  const order = { high:0, medium:1, low:2, info:3, positive:4 };
+  insights.sort((a,b) => (order[a.impact]??5) - (order[b.impact]??5));
+  return insights;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Export Utilities
+// ═══════════════════════════════════════════════════════════
+function dlCSV(filename, rows) {
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportDailyCostsCSV() {
+  const { costData } = appData;
+  const rows = ['Date,Messages,Tool Calls,Sessions,Cache Read,Cache Write,Hit Rate %,Est Cost,Saved'];
+  for (const d of (costData.days||[])) {
+    const allInput = d.input + d.cacheRead + d.cacheCreate;
+    const hr   = allInput > 0 ? d.cacheRead / allInput * 100 : 0;
+    const rates = costData.rates || { input:5/1e6, output:25/1e6 };
+    const noCost= allInput * rates.input + d.output * rates.output;
+    const sv   = Math.max(0, noCost - d.cost);
+    rows.push(`${d.date},${d.messages},${d.toolCalls},${d.sessions},${d.cacheRead},${d.cacheCreate},${hr.toFixed(1)},${d.cost.toFixed(4)},${sv.toFixed(4)}`);
+  }
+  dlCSV('claude-lens-daily-costs.csv', rows);
+}
+
+function exportToolsCSV() {
+  const rows = ['Tool,Count'];
+  for (const t of (appData.toolData.tools||[])) rows.push(`${t.tool},${t.count}`);
+  dlCSV('claude-lens-tool-calls.csv', rows);
+}
+
+function exportProjectsCSV() {
+  const rows = ['Project,Short Name,Messages,Sessions,First Seen,Last Seen'];
+  for (const p of appData.projects) {
+    rows.push(`"${p.name}","${p.shortName}",${p.messages},${p.sessions},"${p.firstSeen||''}","${p.lastSeen||''}"`);
+  }
+  dlCSV('claude-lens-projects.csv', rows);
+}
+
+function exportToolCalls() {
+  const { toolName, calls } = window._lastToolCalls || {};
+  if (!toolName || !calls) return;
+  const lines = [`${toolName} — ${calls.length} calls`, '='.repeat(50), ''];
+  for (const c of calls) {
+    const proj = shortProj(c.project||'');
+    const time = fmtDT(c.timestamp);
+    if (toolName==='Bash') { if (c.description) lines.push(c.description); lines.push(`$ ${c.command}`); }
+    else if (['Read','Edit','Write'].includes(toolName)) { lines.push(c.file_path); }
+    else if (toolName==='Grep') { lines.push(`/${c.pattern}/`); if (c.path) lines.push(`  path: ${c.path}`); if (c.glob) lines.push(`  glob: ${c.glob}`); }
+    else if (toolName==='Glob') { lines.push(c.pattern); if (c.path) lines.push(`  path: ${c.path}`); }
+    else if (toolName==='Agent') { lines.push(c.description); if (c.subagent_type) lines.push(`  type: ${c.subagent_type}`); }
+    else { lines.push(c.input||''); }
+    lines.push(`  [${time} · ${proj}]`, '');
+  }
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `${toolName.toLowerCase()}-calls.txt`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════════════════════════
+// Global Search — filters history section
+// ═══════════════════════════════════════════════════════════
+document.getElementById('global-search').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase().trim();
+  if (!q) {
+    historyFilter = '';
+  } else {
+    historyFilter = q;
+    // Scroll to history section
+    document.querySelector('.section:last-child').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  // Also sync the local history search input
+  document.getElementById('history-search').value = historyFilter;
+  renderHistoryRows();
+});
+
+// ═══════════════════════════════════════════════════════════
+// Init
+// ═══════════════════════════════════════════════════════════
+initSSE();
+load();
+</script>
 </body>
 </html>

@@ -95,7 +95,6 @@ app.get("/api/tool-calls", async (req, res) => {
       }
     }
 
-    // Sort by count descending
     const sorted = Object.entries(toolCounts)
       .sort((a, b) => b[1] - a[1])
       .map(([tool, count]) => ({ tool, count }));
@@ -126,7 +125,6 @@ app.get("/api/tool-details/:toolName", async (req, res) => {
       }
     }
 
-    // Sort by timestamp descending (most recent first)
     calls.sort((a, b) => (b.timestamp || "").localeCompare(a.timestamp || ""));
     res.json(calls);
   } catch (err) {
@@ -217,7 +215,7 @@ app.get("/api/daily-costs", async (req, res) => {
           output: d.output,
           cacheRead: d.cacheRead,
           cacheCreate: d.cacheCreate,
-          cost: Math.round(cost * 100) / 100,
+          cost: Math.round(cost * 10000) / 10000,
           models: d.models,
         };
       });
@@ -246,9 +244,8 @@ app.get("/api/daily-costs", async (req, res) => {
         models: {},
       },
     );
-    totals.cost = Math.round(totals.cost * 100) / 100;
+    totals.cost = Math.round(totals.cost * 10000) / 10000;
 
-    // Merge all models into totals
     for (const d of days) {
       for (const [model, count] of Object.entries(d.models || {})) {
         totals.models[model] = (totals.models[model] || 0) + count;
@@ -261,7 +258,86 @@ app.get("/api/daily-costs", async (req, res) => {
   }
 });
 
-// Recursively find all .jsonl files in a directory
+// GET /api/events — Server-Sent Events for real-time dashboard updates
+app.get("/api/events", (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+  res.write("data: connected\n\n");
+
+  let debounce = null;
+  let watcher = null;
+
+  const notify = () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(() => {
+      try { res.write("data: refresh\n\n"); } catch {}
+    }, 1500);
+  };
+
+  try {
+    watcher = fs.watch(CLAUDE_DIR, { recursive: true }, notify);
+  } catch {
+    // recursive not supported on Linux — watch key files individually
+    try {
+      const histFile = path.join(CLAUDE_DIR, "history.jsonl");
+      if (fs.existsSync(histFile)) fs.watch(histFile, notify);
+    } catch {}
+    try {
+      const projDir = path.join(CLAUDE_DIR, "projects");
+      if (fs.existsSync(projDir)) fs.watch(projDir, notify);
+    } catch {}
+  }
+
+  req.on("close", () => {
+    clearTimeout(debounce);
+    if (watcher) try { watcher.close(); } catch {}
+  });
+});
+
+// GET /api/session/:sessionId — full conversation thread for a session
+app.get("/api/session/:sessionId", async (req, res) => {
+  try {
+    const sessionId = req.params.sessionId;
+    const projectsDir = path.join(CLAUDE_DIR, "projects");
+    const messages = [];
+
+    const projectDirs = fs
+      .readdirSync(projectsDir)
+      .filter((d) => fs.statSync(path.join(projectsDir, d)).isDirectory());
+
+    // First try direct lookup: projects/<proj>/<sessionId>.jsonl
+    let found = false;
+    for (const projDir of projectDirs) {
+      const candidate = path.join(projectsDir, projDir, `${sessionId}.jsonl`);
+      if (fs.existsSync(candidate)) {
+        await parseSessionMessages(candidate, sessionId, messages);
+        found = true;
+        break;
+      }
+    }
+
+    // Fallback: scan all JSONL files
+    if (!found) {
+      for (const projDir of projectDirs) {
+        const projPath = path.join(projectsDir, projDir);
+        const jsonlFiles = findJsonlFiles(projPath);
+        for (const file of jsonlFiles) {
+          await parseSessionMessages(file, sessionId, messages);
+        }
+      }
+    }
+
+    messages.sort((a, b) => (a.timestamp || "").localeCompare(b.timestamp || ""));
+    res.json(messages);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 function findJsonlFiles(dir) {
   const results = [];
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -276,7 +352,6 @@ function findJsonlFiles(dir) {
   return results;
 }
 
-// Parse a JSONL file and extract tool_use entries
 function parseJsonlForTools(filePath, projDir, toolCounts, toolsByProject) {
   return new Promise((resolve) => {
     const stream = fs.createReadStream(filePath, { encoding: "utf8" });
@@ -293,10 +368,8 @@ function parseJsonlForTools(filePath, projDir, toolCounts, toolsByProject) {
           if (item.type === "tool_use") {
             const tool = item.name;
             toolCounts[tool] = (toolCounts[tool] || 0) + 1;
-
             if (!toolsByProject[projDir]) toolsByProject[projDir] = {};
-            toolsByProject[projDir][tool] =
-              (toolsByProject[projDir][tool] || 0) + 1;
+            toolsByProject[projDir][tool] = (toolsByProject[projDir][tool] || 0) + 1;
           }
         }
       } catch {
@@ -309,7 +382,6 @@ function parseJsonlForTools(filePath, projDir, toolCounts, toolsByProject) {
   });
 }
 
-// Parse a JSONL file and accumulate daily token usage
 function parseDailyCosts(filePath, daily) {
   return new Promise((resolve) => {
     const stream = fs.createReadStream(filePath, { encoding: "utf8" });
@@ -349,7 +421,6 @@ function parseDailyCosts(filePath, daily) {
           daily[day].cacheRead += usage.cache_read_input_tokens || 0;
           daily[day].cacheCreate += usage.cache_creation_input_tokens || 0;
 
-          // Track model usage
           const model = obj.message.model || "unknown";
           daily[day].models[model] = (daily[day].models[model] || 0) + 1;
 
@@ -370,7 +441,6 @@ function parseDailyCosts(filePath, daily) {
   });
 }
 
-// Parse a JSONL file and extract details for a specific tool
 function parseJsonlForToolDetails(filePath, projDir, toolName, calls) {
   return new Promise((resolve) => {
     const stream = fs.createReadStream(filePath, { encoding: "utf8" });
@@ -388,7 +458,6 @@ function parseJsonlForToolDetails(filePath, projDir, toolName, calls) {
             const input = item.input || {};
             const detail = { project: projDir, timestamp: obj.timestamp };
 
-            // Extract relevant fields based on tool type
             if (toolName === "Bash") {
               detail.command = input.command || "";
               detail.description = input.description || "";
@@ -409,7 +478,6 @@ function parseJsonlForToolDetails(filePath, projDir, toolName, calls) {
               detail.description = input.description || "";
               detail.subagent_type = input.subagent_type || "";
             } else {
-              // Generic: include all input keys
               detail.input = JSON.stringify(input).slice(0, 200);
             }
 
@@ -426,6 +494,63 @@ function parseJsonlForToolDetails(filePath, projDir, toolName, calls) {
   });
 }
 
+// Parse a JSONL file and extract messages belonging to a specific session
+function parseSessionMessages(filePath, sessionId, messages) {
+  return new Promise((resolve) => {
+    const stream = fs.createReadStream(filePath, { encoding: "utf8" });
+    const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+
+    rl.on("line", (line) => {
+      try {
+        const obj = JSON.parse(line);
+        if (obj.sessionId !== sessionId) return;
+        if (obj.type !== "user" && obj.type !== "assistant") return;
+
+        const msg = { type: obj.type, timestamp: obj.timestamp };
+
+        if (obj.type === "user" && obj.message) {
+          const content = obj.message.content;
+          if (typeof content === "string") {
+            msg.text = content.slice(0, 3000);
+          } else if (Array.isArray(content)) {
+            msg.text = content
+              .filter((c) => c.type === "text")
+              .map((c) => c.text)
+              .join("\n")
+              .slice(0, 3000);
+            msg.hasAttachment = content.some((c) => c.type !== "text" && c.type !== "tool_result");
+          }
+        } else if (obj.type === "assistant" && obj.message) {
+          const content = obj.message.content;
+          if (Array.isArray(content)) {
+            msg.text = content
+              .filter((c) => c.type === "text")
+              .map((c) => c.text)
+              .join("\n")
+              .slice(0, 3000);
+            msg.toolUses = content
+              .filter((c) => c.type === "tool_use")
+              .map((c) => ({
+                name: c.name,
+                summary: JSON.stringify(c.input || {}).slice(0, 120),
+              }));
+          }
+          msg.model = obj.message.model;
+          const usage = obj.message.usage || {};
+          msg.tokens = (usage.input_tokens || 0) + (usage.output_tokens || 0);
+        }
+
+        messages.push(msg);
+      } catch {
+        // skip malformed lines
+      }
+    });
+
+    rl.on("close", resolve);
+    rl.on("error", resolve);
+  });
+}
+
 app.listen(PORT, () => {
-  console.log(`Claude Usage Dashboard running at http://localhost:${PORT}`);
+  console.log(`Claude Lens running at http://localhost:${PORT}`);
 });
