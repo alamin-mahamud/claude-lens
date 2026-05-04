@@ -333,6 +333,7 @@ app.get("/api/daily-costs", async (req, res) => {
           cost: Math.round(d.cost * 10000) / 10000,
           noCacheCost: Math.round(d.noCacheCost * 10000) / 10000,
           models: d.models,
+          modelStats: d.modelStats,
         };
       });
 
@@ -503,6 +504,7 @@ function parseDailyCosts(filePath, daily) {
           daily[day] = {
             input: 0, output: 0, cacheRead: 0, cacheCreate: 0,
             messages: 0, toolCalls: 0, sessions: new Set(), models: {},
+            modelStats: {},
             cost: 0, noCacheCost: 0,
           };
         }
@@ -528,12 +530,24 @@ function parseDailyCosts(filePath, daily) {
           daily[day].output     += out;
           daily[day].cacheRead  += cRead;
           daily[day].cacheCreate+= cWrit;
-          daily[day].cost       += inp * rates.input + out * rates.output
-                                 + cRead * rates.cacheRead + cWrit * rates.cacheWrite;
+          const rowCost = inp * rates.input + out * rates.output
+                        + cRead * rates.cacheRead + cWrit * rates.cacheWrite;
+          daily[day].cost       += rowCost;
           // what this day would have cost with no caching (all tokens at full input rate)
           daily[day].noCacheCost += (inp + cRead + cWrit) * rates.input + out * rates.output;
 
           daily[day].models[model] = (daily[day].models[model] || 0) + 1;
+
+          // per-model token stats (for monthly /usage breakdown)
+          if (!daily[day].modelStats[model]) {
+            daily[day].modelStats[model] = { input: 0, output: 0, cacheRead: 0, cacheCreate: 0, cost: 0, calls: 0 };
+          }
+          daily[day].modelStats[model].input      += inp;
+          daily[day].modelStats[model].output      += out;
+          daily[day].modelStats[model].cacheRead   += cRead;
+          daily[day].modelStats[model].cacheCreate += cWrit;
+          daily[day].modelStats[model].cost        += rowCost;
+          daily[day].modelStats[model].calls       += 1;
 
           const content = obj.message.content;
           if (Array.isArray(content)) {
