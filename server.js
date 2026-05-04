@@ -20,12 +20,35 @@ if (!fs.existsSync(CLAUDE_DIR)) {
   process.exit(1);
 }
 
-const RATES = {
-  input: parseFloat(process.env.RATE_INPUT ?? "5.0") / 1e6,
-  output: parseFloat(process.env.RATE_OUTPUT ?? "25.0") / 1e6,
-  cacheRead: parseFloat(process.env.RATE_CACHE_READ ?? "0.5") / 1e6,
-  cacheCreate: parseFloat(process.env.RATE_CACHE_CREATE ?? "6.25") / 1e6,
+// Per-model-family rates ($/MTok → $/token after dividing by 1e6)
+const MODEL_RATES = {
+  haiku: {
+    input:      parseFloat(process.env.RATE_HAIKU_INPUT       ?? "1.0")  / 1e6,
+    output:     parseFloat(process.env.RATE_HAIKU_OUTPUT      ?? "5.0")  / 1e6,
+    cacheWrite: parseFloat(process.env.RATE_HAIKU_CACHE_WRITE ?? "1.25") / 1e6,
+    cacheRead:  parseFloat(process.env.RATE_HAIKU_CACHE_READ  ?? "0.10") / 1e6,
+  },
+  sonnet: {
+    input:      parseFloat(process.env.RATE_SONNET_INPUT       ?? "3.0")  / 1e6,
+    output:     parseFloat(process.env.RATE_SONNET_OUTPUT      ?? "15.0") / 1e6,
+    cacheWrite: parseFloat(process.env.RATE_SONNET_CACHE_WRITE ?? "3.75") / 1e6,
+    cacheRead:  parseFloat(process.env.RATE_SONNET_CACHE_READ  ?? "0.30") / 1e6,
+  },
+  opus: {
+    input:      parseFloat(process.env.RATE_OPUS_INPUT       ?? "5.0")  / 1e6,
+    output:     parseFloat(process.env.RATE_OPUS_OUTPUT      ?? "25.0") / 1e6,
+    cacheWrite: parseFloat(process.env.RATE_OPUS_CACHE_WRITE ?? "6.25") / 1e6,
+    cacheRead:  parseFloat(process.env.RATE_OPUS_CACHE_READ  ?? "0.50") / 1e6,
+  },
 };
+
+function getRates(model) {
+  const m = (model || "").toLowerCase();
+  if (m.includes("haiku"))  return MODEL_RATES.haiku;
+  if (m.includes("sonnet")) return MODEL_RATES.sonnet;
+  if (m.includes("opus"))   return MODEL_RATES.opus;
+  return MODEL_RATES.sonnet; // safe default for unknown models
+}
 
 // Track sync state
 let syncState = { running: false, lastSync: null, error: null };
@@ -298,11 +321,6 @@ app.get("/api/daily-costs", async (req, res) => {
       .sort()
       .map((date) => {
         const d = daily[date];
-        const cost =
-          d.input * RATES.input +
-          d.output * RATES.output +
-          d.cacheRead * RATES.cacheRead +
-          d.cacheCreate * RATES.cacheCreate;
         return {
           date,
           messages: d.messages,
@@ -312,7 +330,7 @@ app.get("/api/daily-costs", async (req, res) => {
           output: d.output,
           cacheRead: d.cacheRead,
           cacheCreate: d.cacheCreate,
-          cost: Math.round(cost * 10000) / 10000,
+          cost: Math.round(d.cost * 10000) / 10000,
           models: d.models,
         };
       });
@@ -339,7 +357,7 @@ app.get("/api/daily-costs", async (req, res) => {
       }
     }
 
-    res.json({ days, totals, rates: RATES });
+    res.json({ days, totals, rates: MODEL_RATES });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -482,7 +500,7 @@ function parseDailyCosts(filePath, daily) {
         if (!daily[day]) {
           daily[day] = {
             input: 0, output: 0, cacheRead: 0, cacheCreate: 0,
-            messages: 0, toolCalls: 0, sessions: new Set(), models: {},
+            messages: 0, toolCalls: 0, sessions: new Set(), models: {}, cost: 0,
           };
         }
 
@@ -495,12 +513,21 @@ function parseDailyCosts(filePath, daily) {
 
         if (obj.type === "assistant" && obj.message) {
           const usage = obj.message.usage || {};
-          daily[day].input += usage.input_tokens || 0;
-          daily[day].output += usage.output_tokens || 0;
-          daily[day].cacheRead += usage.cache_read_input_tokens || 0;
-          daily[day].cacheCreate += usage.cache_creation_input_tokens || 0;
-
           const model = obj.message.model || "unknown";
+          const rates = getRates(model);
+
+          const inp   = usage.input_tokens || 0;
+          const out   = usage.output_tokens || 0;
+          const cRead = usage.cache_read_input_tokens || 0;
+          const cWrit = usage.cache_creation_input_tokens || 0;
+
+          daily[day].input      += inp;
+          daily[day].output     += out;
+          daily[day].cacheRead  += cRead;
+          daily[day].cacheCreate+= cWrit;
+          daily[day].cost       += inp * rates.input + out * rates.output
+                                 + cRead * rates.cacheRead + cWrit * rates.cacheWrite;
+
           daily[day].models[model] = (daily[day].models[model] || 0) + 1;
 
           const content = obj.message.content;
