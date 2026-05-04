@@ -6,10 +6,14 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const readline = require("readline");
+const { spawn } = require("child_process");
 
 const app = express();
 const PORT = 3456;
 const CLAUDE_DIR = process.env.CLAUDE_DIR || path.join(os.homedir(), ".claude");
+const REMOTE_DIR = process.env.REMOTE_DIR || path.join(os.homedir(), ".claude-remote", "burak");
+const REMOTE_HOST = process.env.REMOTE_HOST || "burak-jump-host-local";
+const REMOTE_CLAUDE_PATH = process.env.REMOTE_CLAUDE_PATH || "~/.claude/";
 
 if (!fs.existsSync(CLAUDE_DIR)) {
   console.error(`CLAUDE_DIR "${CLAUDE_DIR}" does not exist. Set CLAUDE_DIR in .env or ensure ~/.claude exists.`);
@@ -23,9 +27,77 @@ const RATES = {
   cacheCreate: parseFloat(process.env.RATE_CACHE_CREATE ?? "6.25") / 1e6,
 };
 
+// Track sync state
+let syncState = { running: false, lastSync: null, error: null };
+
+/**
+ * Returns all active source directories to read from.
+ * Always includes local. Includes remote if it exists and has been synced.
+ */
+function getSourceDirs() {
+  const sources = [{ dir: CLAUDE_DIR, node: "local" }];
+  if (fs.existsSync(REMOTE_DIR) && fs.existsSync(path.join(REMOTE_DIR, "history.jsonl"))) {
+    sources.push({ dir: REMOTE_DIR, node: "burak" });
+  }
+  return sources;
+}
+
 app.use(express.static(__dirname));
 
-// GET /api/stats — return stats-cache.json as-is
+// GET /api/remote-status — sync state and whether remote data is available
+app.get("/api/remote-status", (req, res) => {
+  const remoteAvailable = fs.existsSync(REMOTE_DIR) &&
+    fs.existsSync(path.join(REMOTE_DIR, "history.jsonl"));
+  res.json({
+    remoteAvailable,
+    running: syncState.running,
+    lastSync: syncState.lastSync,
+    error: syncState.error,
+    remoteHost: REMOTE_HOST,
+  });
+});
+
+// POST /api/sync-remote — rsync from remote host into REMOTE_DIR
+app.post("/api/sync-remote", (req, res) => {
+  if (syncState.running) {
+    return res.json({ status: "already_running" });
+  }
+
+  // Ensure target directory exists
+  fs.mkdirSync(REMOTE_DIR, { recursive: true });
+
+  syncState.running = true;
+  syncState.error = null;
+
+  const args = [
+    "-az",
+    "--delete",
+    "-e", "ssh",
+    `${REMOTE_HOST}:${REMOTE_CLAUDE_PATH}`,
+    `${REMOTE_DIR}/`,
+  ];
+
+  const proc = spawn("rsync", args);
+
+  proc.on("close", (code) => {
+    syncState.running = false;
+    if (code === 0) {
+      syncState.lastSync = new Date().toISOString();
+      syncState.error = null;
+    } else {
+      syncState.error = `rsync exited with code ${code}`;
+    }
+  });
+
+  proc.on("error", (err) => {
+    syncState.running = false;
+    syncState.error = err.message;
+  });
+
+  res.json({ status: "started" });
+});
+
+// GET /api/stats — return stats-cache.json (local only; remote may not have it)
 app.get("/api/stats", (req, res) => {
   try {
     const data = JSON.parse(
@@ -37,61 +109,74 @@ app.get("/api/stats", (req, res) => {
   }
 });
 
-// GET /api/history — parse history.jsonl
+// GET /api/history — parse history.jsonl from all sources
 app.get("/api/history", (req, res) => {
   try {
-    const lines = fs
-      .readFileSync(path.join(CLAUDE_DIR, "history.jsonl"), "utf8")
-      .split("\n")
-      .filter((l) => l.trim());
-    const entries = lines.map((line) => {
-      const obj = JSON.parse(line);
-      return {
-        display: obj.display,
-        timestamp: obj.timestamp,
-        project: obj.project,
-        sessionId: obj.sessionId,
-      };
-    });
+    const entries = [];
+    for (const { dir, node } of getSourceDirs()) {
+      const histFile = path.join(dir, "history.jsonl");
+      if (!fs.existsSync(histFile)) continue;
+      const lines = fs.readFileSync(histFile, "utf8").split("\n").filter((l) => l.trim());
+      for (const line of lines) {
+        try {
+          const obj = JSON.parse(line);
+          entries.push({
+            display: obj.display,
+            timestamp: typeof obj.timestamp === "string" ? obj.timestamp : "",
+            project: obj.project,
+            sessionId: obj.sessionId,
+            node,
+          });
+        } catch {}
+      }
+    }
+    entries.sort((a, b) => (b.timestamp > a.timestamp ? 1 : b.timestamp < a.timestamp ? -1 : 0));
     res.json(entries);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// GET /api/sessions — read sessions/*.json
+// GET /api/sessions — read sessions/*.json from all sources
 app.get("/api/sessions", (req, res) => {
   try {
-    const sessionsDir = path.join(CLAUDE_DIR, "sessions");
-    const files = fs
-      .readdirSync(sessionsDir)
-      .filter((f) => f.endsWith(".json"));
-    const sessions = files.map((f) =>
-      JSON.parse(fs.readFileSync(path.join(sessionsDir, f), "utf8")),
-    );
+    const sessions = [];
+    for (const { dir, node } of getSourceDirs()) {
+      const sessionsDir = path.join(dir, "sessions");
+      if (!fs.existsSync(sessionsDir)) continue;
+      const files = fs.readdirSync(sessionsDir).filter((f) => f.endsWith(".json"));
+      for (const f of files) {
+        const s = JSON.parse(fs.readFileSync(path.join(sessionsDir, f), "utf8"));
+        sessions.push({ ...s, node });
+      }
+    }
     res.json(sessions);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// GET /api/tool-calls — aggregate tool calls from all project session JSONL files
+// GET /api/tool-calls — aggregate tool calls from all sources
 app.get("/api/tool-calls", async (req, res) => {
   try {
-    const projectsDir = path.join(CLAUDE_DIR, "projects");
     const toolCounts = {};
     const toolsByProject = {};
 
-    const projectDirs = fs
-      .readdirSync(projectsDir)
-      .filter((d) => fs.statSync(path.join(projectsDir, d)).isDirectory());
+    for (const { dir, node } of getSourceDirs()) {
+      const projectsDir = path.join(dir, "projects");
+      if (!fs.existsSync(projectsDir)) continue;
 
-    for (const projDir of projectDirs) {
-      const projPath = path.join(projectsDir, projDir);
-      const jsonlFiles = findJsonlFiles(projPath);
+      const projectDirs = fs
+        .readdirSync(projectsDir)
+        .filter((d) => fs.statSync(path.join(projectsDir, d)).isDirectory());
 
-      for (const file of jsonlFiles) {
-        await parseJsonlForTools(file, projDir, toolCounts, toolsByProject);
+      for (const projDir of projectDirs) {
+        const projPath = path.join(projectsDir, projDir);
+        const jsonlFiles = findJsonlFiles(projPath);
+        const projKey = `${node}:${projDir}`;
+        for (const file of jsonlFiles) {
+          await parseJsonlForTools(file, projKey, toolCounts, toolsByProject);
+        }
       }
     }
 
@@ -105,23 +190,26 @@ app.get("/api/tool-calls", async (req, res) => {
   }
 });
 
-// GET /api/tool-details/:toolName — return individual calls for a specific tool
+// GET /api/tool-details/:toolName — return individual calls for a specific tool across all sources
 app.get("/api/tool-details/:toolName", async (req, res) => {
   try {
     const toolName = req.params.toolName;
-    const projectsDir = path.join(CLAUDE_DIR, "projects");
     const calls = [];
 
-    const projectDirs = fs
-      .readdirSync(projectsDir)
-      .filter((d) => fs.statSync(path.join(projectsDir, d)).isDirectory());
+    for (const { dir, node } of getSourceDirs()) {
+      const projectsDir = path.join(dir, "projects");
+      if (!fs.existsSync(projectsDir)) continue;
 
-    for (const projDir of projectDirs) {
-      const projPath = path.join(projectsDir, projDir);
-      const jsonlFiles = findJsonlFiles(projPath);
+      const projectDirs = fs
+        .readdirSync(projectsDir)
+        .filter((d) => fs.statSync(path.join(projectsDir, d)).isDirectory());
 
-      for (const file of jsonlFiles) {
-        await parseJsonlForToolDetails(file, projDir, toolName, calls);
+      for (const projDir of projectDirs) {
+        const projPath = path.join(projectsDir, projDir);
+        const jsonlFiles = findJsonlFiles(projPath);
+        for (const file of jsonlFiles) {
+          await parseJsonlForToolDetails(file, projDir, toolName, calls, node);
+        }
       }
     }
 
@@ -132,44 +220,46 @@ app.get("/api/tool-details/:toolName", async (req, res) => {
   }
 });
 
-// GET /api/projects — project-level summary from history.jsonl
+// GET /api/projects — project-level summary from all sources
 app.get("/api/projects", (req, res) => {
   try {
-    const lines = fs
-      .readFileSync(path.join(CLAUDE_DIR, "history.jsonl"), "utf8")
-      .split("\n")
-      .filter((l) => l.trim());
-
     const projects = {};
-    for (const line of lines) {
-      const obj = JSON.parse(line);
-      const proj = obj.project || "unknown";
-      if (!projects[proj]) {
-        projects[proj] = {
-          messages: 0,
-          sessions: new Set(),
-          firstSeen: null,
-          lastSeen: null,
-        };
-      }
-      projects[proj].messages++;
-      projects[proj].sessions.add(obj.sessionId);
-      const ts = obj.timestamp;
-      if (!projects[proj].firstSeen || ts < projects[proj].firstSeen) {
-        projects[proj].firstSeen = ts;
-      }
-      if (!projects[proj].lastSeen || ts > projects[proj].lastSeen) {
-        projects[proj].lastSeen = ts;
+
+    for (const { dir, node } of getSourceDirs()) {
+      const histFile = path.join(dir, "history.jsonl");
+      if (!fs.existsSync(histFile)) continue;
+
+      const lines = fs.readFileSync(histFile, "utf8").split("\n").filter((l) => l.trim());
+      for (const line of lines) {
+        const obj = JSON.parse(line);
+        const proj = obj.project || "unknown";
+        const key = `${node}:${proj}`;
+        if (!projects[key]) {
+          projects[key] = {
+            name: proj,
+            node,
+            messages: 0,
+            sessions: new Set(),
+            firstSeen: null,
+            lastSeen: null,
+          };
+        }
+        projects[key].messages++;
+        projects[key].sessions.add(obj.sessionId);
+        const ts = obj.timestamp;
+        if (!projects[key].firstSeen || ts < projects[key].firstSeen) projects[key].firstSeen = ts;
+        if (!projects[key].lastSeen || ts > projects[key].lastSeen) projects[key].lastSeen = ts;
       }
     }
 
-    const result = Object.entries(projects).map(([name, data]) => ({
-      name,
-      shortName: name.split("/").pop(),
+    const result = Object.values(projects).map((data) => ({
+      name: data.name,
+      shortName: data.name.split("/").pop(),
       messages: data.messages,
       sessions: data.sessions.size,
       firstSeen: data.firstSeen,
       lastSeen: data.lastSeen,
+      node: data.node,
     }));
 
     result.sort((a, b) => b.messages - a.messages);
@@ -179,21 +269,25 @@ app.get("/api/projects", (req, res) => {
   }
 });
 
-// GET /api/daily-costs — token usage and estimated cost per day
+// GET /api/daily-costs — token usage and estimated cost per day merged across all sources
 app.get("/api/daily-costs", async (req, res) => {
   try {
-    const projectsDir = path.join(CLAUDE_DIR, "projects");
     const daily = {};
 
-    const projectDirs = fs
-      .readdirSync(projectsDir)
-      .filter((d) => fs.statSync(path.join(projectsDir, d)).isDirectory());
+    for (const { dir } of getSourceDirs()) {
+      const projectsDir = path.join(dir, "projects");
+      if (!fs.existsSync(projectsDir)) continue;
 
-    for (const projDir of projectDirs) {
-      const projPath = path.join(projectsDir, projDir);
-      const jsonlFiles = findJsonlFiles(projPath);
-      for (const file of jsonlFiles) {
-        await parseDailyCosts(file, daily);
+      const projectDirs = fs
+        .readdirSync(projectsDir)
+        .filter((d) => fs.statSync(path.join(projectsDir, d)).isDirectory());
+
+      for (const projDir of projectDirs) {
+        const projPath = path.join(projectsDir, projDir);
+        const jsonlFiles = findJsonlFiles(projPath);
+        for (const file of jsonlFiles) {
+          await parseDailyCosts(file, daily);
+        }
       }
     }
 
@@ -232,17 +326,7 @@ app.get("/api/daily-costs", async (req, res) => {
         acc.cost += d.cost;
         return acc;
       },
-      {
-        messages: 0,
-        toolCalls: 0,
-        sessions: 0,
-        input: 0,
-        output: 0,
-        cacheRead: 0,
-        cacheCreate: 0,
-        cost: 0,
-        models: {},
-      },
+      { messages: 0, toolCalls: 0, sessions: 0, input: 0, output: 0, cacheRead: 0, cacheCreate: 0, cost: 0, models: {} },
     );
     totals.cost = Math.round(totals.cost * 10000) / 10000;
 
@@ -258,7 +342,7 @@ app.get("/api/daily-costs", async (req, res) => {
   }
 });
 
-// GET /api/events — Server-Sent Events for real-time dashboard updates
+// GET /api/events — SSE for real-time updates (watches both local and remote dirs)
 app.get("/api/events", (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -267,7 +351,7 @@ app.get("/api/events", (req, res) => {
   res.write("data: connected\n\n");
 
   let debounce = null;
-  let watcher = null;
+  const watchers = [];
 
   const notify = () => {
     clearTimeout(debounce);
@@ -276,55 +360,55 @@ app.get("/api/events", (req, res) => {
     }, 1500);
   };
 
-  try {
-    watcher = fs.watch(CLAUDE_DIR, { recursive: true }, notify);
-  } catch {
-    // recursive not supported on Linux — watch key files individually
+  for (const { dir } of [{ dir: CLAUDE_DIR }, { dir: REMOTE_DIR }]) {
+    if (!fs.existsSync(dir)) continue;
     try {
-      const histFile = path.join(CLAUDE_DIR, "history.jsonl");
-      if (fs.existsSync(histFile)) fs.watch(histFile, notify);
-    } catch {}
-    try {
-      const projDir = path.join(CLAUDE_DIR, "projects");
-      if (fs.existsSync(projDir)) fs.watch(projDir, notify);
-    } catch {}
+      watchers.push(fs.watch(dir, { recursive: true }, notify));
+    } catch {
+      try {
+        const histFile = path.join(dir, "history.jsonl");
+        if (fs.existsSync(histFile)) watchers.push(fs.watch(histFile, notify));
+      } catch {}
+    }
   }
 
   req.on("close", () => {
     clearTimeout(debounce);
-    if (watcher) try { watcher.close(); } catch {}
+    for (const w of watchers) try { w.close(); } catch {}
   });
 });
 
-// GET /api/session/:sessionId — full conversation thread for a session
+// GET /api/session/:sessionId — full conversation thread, checks all sources
 app.get("/api/session/:sessionId", async (req, res) => {
   try {
     const sessionId = req.params.sessionId;
-    const projectsDir = path.join(CLAUDE_DIR, "projects");
     const messages = [];
 
-    const projectDirs = fs
-      .readdirSync(projectsDir)
-      .filter((d) => fs.statSync(path.join(projectsDir, d)).isDirectory());
+    for (const { dir, node } of getSourceDirs()) {
+      const projectsDir = path.join(dir, "projects");
+      if (!fs.existsSync(projectsDir)) continue;
 
-    // First try direct lookup: projects/<proj>/<sessionId>.jsonl
-    let found = false;
-    for (const projDir of projectDirs) {
-      const candidate = path.join(projectsDir, projDir, `${sessionId}.jsonl`);
-      if (fs.existsSync(candidate)) {
-        await parseSessionMessages(candidate, sessionId, messages);
-        found = true;
-        break;
-      }
-    }
+      const projectDirs = fs
+        .readdirSync(projectsDir)
+        .filter((d) => fs.statSync(path.join(projectsDir, d)).isDirectory());
 
-    // Fallback: scan all JSONL files
-    if (!found) {
+      let found = false;
       for (const projDir of projectDirs) {
-        const projPath = path.join(projectsDir, projDir);
-        const jsonlFiles = findJsonlFiles(projPath);
-        for (const file of jsonlFiles) {
-          await parseSessionMessages(file, sessionId, messages);
+        const candidate = path.join(projectsDir, projDir, `${sessionId}.jsonl`);
+        if (fs.existsSync(candidate)) {
+          await parseSessionMessages(candidate, sessionId, messages, node);
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) {
+        for (const projDir of projectDirs) {
+          const projPath = path.join(projectsDir, projDir);
+          const jsonlFiles = findJsonlFiles(projPath);
+          for (const file of jsonlFiles) {
+            await parseSessionMessages(file, sessionId, messages, node);
+          }
         }
       }
     }
@@ -372,9 +456,7 @@ function parseJsonlForTools(filePath, projDir, toolCounts, toolsByProject) {
             toolsByProject[projDir][tool] = (toolsByProject[projDir][tool] || 0) + 1;
           }
         }
-      } catch {
-        // skip malformed lines
-      }
+      } catch {}
     });
 
     rl.on("close", resolve);
@@ -396,14 +478,8 @@ function parseDailyCosts(filePath, daily) {
 
         if (!daily[day]) {
           daily[day] = {
-            input: 0,
-            output: 0,
-            cacheRead: 0,
-            cacheCreate: 0,
-            messages: 0,
-            toolCalls: 0,
-            sessions: new Set(),
-            models: {},
+            input: 0, output: 0, cacheRead: 0, cacheCreate: 0,
+            messages: 0, toolCalls: 0, sessions: new Set(), models: {},
           };
         }
 
@@ -431,9 +507,7 @@ function parseDailyCosts(filePath, daily) {
             }
           }
         }
-      } catch {
-        // skip
-      }
+      } catch {}
     });
 
     rl.on("close", resolve);
@@ -441,7 +515,7 @@ function parseDailyCosts(filePath, daily) {
   });
 }
 
-function parseJsonlForToolDetails(filePath, projDir, toolName, calls) {
+function parseJsonlForToolDetails(filePath, projDir, toolName, calls, node) {
   return new Promise((resolve) => {
     const stream = fs.createReadStream(filePath, { encoding: "utf8" });
     const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
@@ -456,7 +530,7 @@ function parseJsonlForToolDetails(filePath, projDir, toolName, calls) {
         for (const item of content) {
           if (item.type === "tool_use" && item.name === toolName) {
             const input = item.input || {};
-            const detail = { project: projDir, timestamp: obj.timestamp };
+            const detail = { project: projDir, timestamp: obj.timestamp, node };
 
             if (toolName === "Bash") {
               detail.command = input.command || "";
@@ -484,9 +558,7 @@ function parseJsonlForToolDetails(filePath, projDir, toolName, calls) {
             calls.push(detail);
           }
         }
-      } catch {
-        // skip malformed lines
-      }
+      } catch {}
     });
 
     rl.on("close", resolve);
@@ -494,8 +566,7 @@ function parseJsonlForToolDetails(filePath, projDir, toolName, calls) {
   });
 }
 
-// Parse a JSONL file and extract messages belonging to a specific session
-function parseSessionMessages(filePath, sessionId, messages) {
+function parseSessionMessages(filePath, sessionId, messages, node) {
   return new Promise((resolve) => {
     const stream = fs.createReadStream(filePath, { encoding: "utf8" });
     const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
@@ -506,7 +577,7 @@ function parseSessionMessages(filePath, sessionId, messages) {
         if (obj.sessionId !== sessionId) return;
         if (obj.type !== "user" && obj.type !== "assistant") return;
 
-        const msg = { type: obj.type, timestamp: obj.timestamp };
+        const msg = { type: obj.type, timestamp: obj.timestamp, node };
 
         if (obj.type === "user" && obj.message) {
           const content = obj.message.content;
@@ -541,9 +612,7 @@ function parseSessionMessages(filePath, sessionId, messages) {
         }
 
         messages.push(msg);
-      } catch {
-        // skip malformed lines
-      }
+      } catch {}
     });
 
     rl.on("close", resolve);

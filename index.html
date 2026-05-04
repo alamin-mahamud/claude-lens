@@ -937,6 +937,31 @@ tbody tr:last-child td{border-bottom:none}
 }
 
 /* ─────────────────────────────────────────────────────────────
+   NODE BADGE
+───────────────────────────────────────────────────────────── */
+.node-badge{
+  display:inline-block;
+  font-family:var(--fm);
+  font-size:9.5px;
+  letter-spacing:.04em;
+  padding:2px 6px;
+  border-radius:3px;
+  vertical-align:middle;
+  font-weight:500;
+  white-space:nowrap;
+}
+.node-badge.local{
+  background:rgba(217,119,87,.1);
+  color:var(--gold);
+  border:1px solid rgba(217,119,87,.2);
+}
+.node-badge.burak{
+  background:rgba(106,155,204,.1);
+  color:var(--blue);
+  border:1px solid rgba(106,155,204,.2);
+}
+
+/* ─────────────────────────────────────────────────────────────
    MISC
 ───────────────────────────────────────────────────────────── */
 .loading{font-family:var(--fm);font-size:12.5px;color:var(--ink-3);padding:10px 0;letter-spacing:.02em}
@@ -1019,6 +1044,8 @@ tbody tr:last-child td{border-bottom:none}
   <div class="topbar">
     <div class="topbar-title" id="topbar-section">Overview</div>
     <div class="topbar-actions">
+      <span class="tbtn" id="sync-status" style="display:none;cursor:default;border-color:transparent;color:var(--ink-3)"></span>
+      <button class="tbtn" id="sync-btn" onclick="syncRemote(this)" title="Rsync ~/.claude from burak-jump-host-local">⇄ Sync burak</button>
       <button class="tbtn primary" onclick="toggleExplainer()">How it works</button>
       <button class="tbtn" onclick="load()">↺ Refresh</button>
     </div>
@@ -1153,12 +1180,12 @@ tbody tr:last-child td{border-bottom:none}
       <div class="tbl-wrap">
         <table>
           <thead><tr>
-            <th>Project</th>
+            <th>Project</th><th>Node</th>
             <th class="r">Messages <span class="tip" data-tip="User prompts sent in this project.">?</span></th>
             <th class="r">Sessions <span class="tip" data-tip="Distinct Claude Code sessions started in this project.">?</span></th>
             <th class="r">Last Active <span class="tip" data-tip="Timestamp of most recent prompt.">?</span></th>
           </tr></thead>
-          <tbody id="proj-body"><tr><td colspan="4" class="loading">Loading…</td></tr></tbody>
+          <tbody id="proj-body"><tr><td colspan="5" class="loading">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1180,11 +1207,11 @@ tbody tr:last-child td{border-bottom:none}
       <div class="tbl-wrap">
         <table>
           <thead><tr>
-            <th>Time</th><th>Project</th>
+            <th>Time</th><th>Node</th><th>Project</th>
             <th>Prompt <span class="tip" data-tip="Click to expand the full session thread for this conversation.">?</span></th>
             <th>Session</th>
           </tr></thead>
-          <tbody id="hist-body"><tr><td colspan="4" class="loading">Loading…</td></tr></tbody>
+          <tbody id="hist-body"><tr><td colspan="5" class="loading">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1321,6 +1348,53 @@ async function load() {
   renderProjects();
   renderHistory();
   renderFootStats();
+  checkRemoteStatus();
+}
+
+async function checkRemoteStatus() {
+  try {
+    const s = await fetch('/api/remote-status').then(r=>r.json());
+    const el = document.getElementById('sync-status');
+    const btn = document.getElementById('sync-btn');
+    if (s.remoteAvailable && s.lastSync) {
+      const d = new Date(s.lastSync);
+      const hm = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+      el.textContent = `burak synced ${hm}`;
+      el.style.display = '';
+    } else if (!s.remoteAvailable) {
+      el.textContent = '';
+      el.style.display = 'none';
+    }
+    btn.disabled = s.running;
+    btn.textContent = s.running ? '⇄ Syncing…' : '⇄ Sync burak';
+  } catch {}
+}
+
+async function syncRemote(btn) {
+  btn.disabled = true;
+  btn.textContent = '⇄ Syncing…';
+  try {
+    await fetch('/api/sync-remote', { method: 'POST' });
+    // Poll until done
+    const poll = setInterval(async () => {
+      try {
+        const s = await fetch('/api/remote-status').then(r=>r.json());
+        if (!s.running) {
+          clearInterval(poll);
+          btn.disabled = false;
+          btn.textContent = '⇄ Sync burak';
+          if (s.error) {
+            alert('Sync failed: ' + s.error);
+          } else {
+            load(); // reload all data with merged remote
+          }
+        }
+      } catch { clearInterval(poll); btn.disabled=false; btn.textContent='⇄ Sync burak'; }
+    }, 1500);
+  } catch {
+    btn.disabled = false;
+    btn.textContent = '⇄ Sync burak';
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1792,13 +1866,14 @@ async function loadToolDetail(toolName) {
 ═══════════════════════════════════════════════════════════ */
 function renderProjects() {
   const tbody = document.getElementById('proj-body');
-  if (!appData.projects.length) { tbody.innerHTML='<tr><td colspan="4" class="empty">No projects.</td></tr>'; return; }
+  if (!appData.projects.length) { tbody.innerHTML='<tr><td colspan="5" class="empty">No projects.</td></tr>'; return; }
   tbody.innerHTML = appData.projects.map(p=>`
     <tr>
       <td>
         <span class="badge">${esc(p.shortName)}</span>
         <span class="proj-path" title="${esc(p.name)}">${esc(p.name)}</span>
       </td>
+      <td><span class="node-badge ${esc(p.node||'local')}">${esc(p.node||'local')}</span></td>
       <td class="r bright">${fmt(p.messages)}</td>
       <td class="r">${fmt(p.sessions)}</td>
       <td class="r" style="white-space:nowrap">${fmtDT(p.lastSeen)}</td>
@@ -1842,11 +1917,12 @@ function renderHistRows() {
     (h.sessionId||'').toLowerCase().includes(histFilter)
   );
   const sorted = [...filtered].reverse();
-  if (!sorted.length) { tbody.innerHTML='<tr><td colspan="4" class="empty">No matches.</td></tr>'; return; }
+  if (!sorted.length) { tbody.innerHTML='<tr><td colspan="5" class="empty">No matches.</td></tr>'; return; }
 
   tbody.innerHTML = sorted.map(h=>`
     <tr class="history-row" data-sid="${esc(h.sessionId||'')}">
       <td style="white-space:nowrap;color:var(--ink-3)">${fmtDT(h.timestamp)}</td>
+      <td><span class="node-badge ${esc(h.node||'local')}">${esc(h.node||'local')}</span></td>
       <td><span class="badge">${esc(shortProj(h.project))}</span></td>
       <td class="prompt-cell" title="${esc(h.display||'').replace(/"/g,'&quot;')}">
         ${esc(h.display||'')}
